@@ -257,7 +257,7 @@
     #preloader > * { position: absolute; }
 
     /* фон: фото проявляется (из размытия и крупного плана) */
-    .pl-bg { inset: -4%; background: url(assets/hero-youth.jpg) center / cover no-repeat;
+    .pl-bg { inset: -4%; background: url(hero-youth.jpg) center / cover no-repeat;
       filter: grayscale(1) contrast(1.05) blur(calc((1 - var(--p)) * 18px));
       transform: scale(calc(1.2 - var(--p) * .16)); opacity: calc(.12 + var(--p) * .38); }
     .pl-vignette { inset: 0; background: radial-gradient(ellipse at center, rgba(17,17,17,.15) 0%, rgba(17,17,17,.75) 70%, #111 100%); }
@@ -555,7 +555,7 @@
     <!-- ===================== HERO ===================== -->
     <section class="relative h-[88vh] min-h-[560px] overflow-hidden img-fallback">
       <img id="heroImg"
-        src="assets/hero-youth.jpg"
+        src="hero-youth.jpg"
         alt="Манекены в солнцезащитных очках и соломенной шляпе — летняя коллекция MONTE"
         class="absolute inset-0 w-full h-full object-cover object-center"
         />
@@ -1505,7 +1505,7 @@
       'photo-1521572163474-6864f9cf17ab','photo-1515886657613-9f3515b0c78f','photo-1542291026-7eec264c27ff','photo-1489980557514-251d61e3eeb6']
       .map(id => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=85`);
     // Запасной кадр для главного баннера, если основной файл не найден
-    const HERO_SPARES = ['assets/hero-minimal.jpg'];
+    const HERO_SPARES = ['hero-minimal.jpg'];
     const deadPhotos = new Set();
     const retriedPhotos = new Set();
     const photoKey = src => (String(src).match(/photo-[\w-]+/) || [''])[0];
