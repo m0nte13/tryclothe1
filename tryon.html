@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Безопасность: MediaPipe (jsDelivr + модели Google) разрешены только для примерки; см. SECURITY.md -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file: 'unsafe-inline' https://cdn.tailwindcss.com/3.4.17 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com; worker-src 'self' blob:; form-action 'none'; base-uri 'none'; object-src 'none'" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>MONTE — Виртуальная примерка</title>
+  <meta name="description" content="Примерьте одежду MONTE онлайн через камеру: вещи следуют за вашими движениями в реальном времени. Видео не покидает ваше устройство." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <script src="vendor/tailwindcss-3.4.17.js"></script>
+  <!-- Запасной вариант: если папку vendor не загрузили на хостинг, берём ту же версию с официального CDN -->
+  <script>window.tailwind || document.write('<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>')</script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { ink: '#0B0B0C', milk: '#F4EFE6', stone: '#8A8680' },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    html, body { height: 100%; background: #0B0B0C; }
+    body { overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+    .glass { background: rgba(24, 24, 27, .72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+
+    /* Carousel tiles */
+    .tile { width: 84px; flex-shrink: 0; scroll-snap-align: start; text-align: center; }
+    .tile-thumb { position: relative; width: 84px; height: 84px; border-radius: 1.1rem; overflow: hidden; background: radial-gradient(circle at 50% 35%, #34343A, #222226); transition: box-shadow .2s, transform .2s; }
+    .tile:active .tile-thumb { transform: scale(.96); }
+    .tile[aria-pressed="true"] .tile-thumb { box-shadow: 0 0 0 2px #F4EFE6; }
+    .tile.selected .tile-thumb { box-shadow: 0 0 0 2px #F4EFE6, 0 0 0 6px rgba(244, 239, 230, .22); }
+    .tile .badge { display: none; }
+    .tile[aria-pressed="true"] .badge { display: flex; }
+    .tile-label { margin-top: 6px; font-size: 11px; line-height: 1.2; color: rgba(244, 239, 230, .8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Round action buttons */
+    .action-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: rgba(244, 239, 230, .8); }
+    .action-btn .ic { width: 48px; height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, .1); transition: background .2s; }
+    .action-btn:hover:not(:disabled) .ic { background: rgba(255, 255, 255, .18); }
+    .action-btn:disabled, #photoBtn:disabled { opacity: .35; cursor: not-allowed; }
+
+    input[type=range] { width: 100%; accent-color: #F4EFE6; }
+    input[type=color] { -webkit-appearance: none; appearance: none; width: 36px; height: 36px; border: none; padding: 0; background: none; cursor: pointer; border-radius: 9999px; }
+    input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type=color]::-webkit-color-swatch { border: 2px solid rgba(255, 255, 255, .35); border-radius: 9999px; }
+    input[type=color]::-moz-color-swatch { border: 2px solid rgba(255, 255, 255, .35); border-radius: 9999px; }
+
+    #flash { opacity: 0; }
+    #flash.go { animation: flash .45s ease-out; }
+    @keyframes flash { from { opacity: .85; } to { opacity: 0; } }
+
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(11, 11, 12, .25); border-top-color: #0B0B0C; border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      #flash.go { animation: none; }
+      .spinner { animation-duration: 2s; }
+    }
+  </style>
+</head>
+
+<body class="text-milk font-sans">
+<main id="app" class="fixed inset-0 overflow-hidden bg-ink">
+
+  <!-- ======================= STAGE (CameraView output) ======================= -->
+  <video id="video" class="hidden" playsinline muted></video>
+  <canvas id="stage" class="absolute inset-0 w-full h-full object-cover md:object-contain"
+          aria-label="Изображение с камеры с примеряемой одеждой"></canvas>
+  <div id="flash" class="pointer-events-none absolute inset-0 z-10 bg-white"></div>
+
+  <!-- Top bar -->
+  <header class="absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-3 px-4 pb-6 bg-gradient-to-b from-black/70 to-transparent"
+          style="padding-top: max(env(safe-area-inset-top), 12px);">
+    <a href="index.html" class="glass inline-flex items-center gap-2 rounded-full pl-3 pr-4 h-10 hover:bg-white/10 transition" aria-label="Вернуться в магазин MONTE">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6l-6 6 6 6"/></svg>
+      <span class="font-serif text-lg tracking-[0.2em] leading-none">MONTE</span>
+    </a>
+    <p class="hidden sm:block text-[11px] uppercase tracking-[0.3em] text-milk/70">Виртуальная примерка</p>
+    <div id="fps" class="glass hidden items-center rounded-full px-3 h-8 text-xs tabular-nums text-milk/80">— FPS</div>
+  </header>
+
+  <!-- Pose hint -->
+  <div id="hint" role="status" aria-live="polite"
+       class="hidden absolute left-1/2 -translate-x-1/2 z-30 glass rounded-full px-4 py-2 text-sm text-center w-max max-w-[90vw]"
+       style="top: calc(max(env(safe-area-inset-top), 12px) + 56px);"></div>
+
+  <!-- Toast -->
+  <div id="toast" role="status" aria-live="polite"
+       class="pointer-events-none absolute left-1/2 -translate-x-1/2 z-50 rounded-full bg-milk text-ink text-sm px-5 py-2.5 shadow-lg opacity-0 transition-opacity duration-300 w-max max-w-[90vw] text-center"
+       style="top: calc(max(env(safe-area-inset-top), 12px) + 104px);"></div>
+
+  <!-- Start screen -->
+  <section id="startScreen" class="absolute inset-0 z-20 flex justify-center px-5 pt-24 pb-[170px] overflow-y-auto">
+    <div class="max-w-md w-full text-center my-auto">
+      <div class="mx-auto mb-6 w-16 h-16 rounded-full glass flex items-center justify-center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 8.5A2.5 2.5 0 015.5 6h1.6l1.4-2h7l1.4 2h1.6A2.5 2.5 0 0121 8.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5v-9z"/><circle cx="12" cy="13" r="3.6"/></svg>
+      </div>
+      <p class="text-[11px] uppercase tracking-[0.3em] text-milk/60 mb-3">AR-примерка</p>
+      <h1 class="font-serif text-4xl sm:text-5xl leading-tight mb-4">Примерьте <em>до&nbsp;покупки</em></h1>
+      <p class="text-sm text-milk/70 leading-relaxed mb-8">
+        Включите камеру, посмотрите на себя и сохраните снимок.
+        Всё работает прямо в браузере: видео никуда не отправляется.
+      </p>
+      <button id="startBtn" class="inline-flex items-center justify-center gap-3 h-14 px-8 w-full sm:w-auto rounded-full bg-milk text-ink text-sm font-medium uppercase tracking-[0.15em] hover:bg-white transition disabled:opacity-70">
+        <span id="startSpinner" class="spinner hidden"></span><span id="startLabel">Включить камеру</span>
+      </button>
+      <div>
+        <button id="photoModeBtn" class="mt-4 text-sm text-milk/70 underline underline-offset-4 hover:text-milk">Нет камеры? Откройте своё фото</button>
+      </div>
+      <p id="startStatus" class="mt-4 text-xs text-milk/50 min-h-[1rem]"></p>
+    </div>
+  </section>
+
+  <!-- Error dialog -->
+  <section id="errorBox" class="hidden absolute inset-0 z-40 items-center justify-center p-5 bg-ink/90" role="alertdialog" aria-labelledby="errorTitle" aria-describedby="errorText">
+    <div class="glass max-w-sm w-full rounded-3xl p-6 text-center">
+      <div class="mx-auto mb-4 w-12 h-12 rounded-full bg-red-500/15 text-red-300 flex items-center justify-center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v5M12 16.5v.01"/><circle cx="12" cy="12" r="9"/></svg>
+      </div>
+      <h2 id="errorTitle" class="text-lg font-medium mb-2">Камера недоступна</h2>
+      <p id="errorText" class="text-sm text-milk/70 leading-relaxed mb-6"></p>
+      <div class="flex flex-col gap-2">
+        <button id="errorRetry" class="h-12 rounded-full bg-milk text-ink text-sm font-medium hover:bg-white transition">Попробовать снова</button>
+        <button id="errorPhoto" class="h-12 rounded-full border border-white/20 text-sm hover:bg-white/10 transition">Открыть своё фото</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= BOTTOM PANEL ======================= -->
+  <section id="panel" class="absolute inset-x-0 bottom-0 z-30 pt-14 bg-gradient-to-t from-black/95 via-black/80 to-transparent"
+           style="padding-bottom: max(env(safe-area-inset-bottom), 14px);">
+    <div class="mx-auto max-w-3xl">
+
+      <!-- Controls: adjust the selected item -->
+      <div id="adjust" class="hidden mx-3 mb-3 glass rounded-3xl px-4 py-3">
+        <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
+          <div class="min-w-0 basis-full sm:basis-auto sm:flex-1">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-milk/50">Настройка</p>
+            <p id="adjName" class="text-sm font-medium truncate"></p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <label title="Цвет"><span class="sr-only">Цвет вещи</span><input id="adjColor" type="color" value="#ffffff" /></label>
+            <button id="adjOriginal" class="hidden h-9 px-3 rounded-full border border-white/20 text-xs hover:bg-white/10">Исходный</button>
+            <button id="adjReset" class="h-9 px-3 rounded-full border border-white/20 text-xs hover:bg-white/10">Сброс</button>
+            <button id="adjRemove" class="h-9 px-3 rounded-full bg-white/10 text-xs hover:bg-white/20">Снять</button>
+            <button id="adjClose" class="h-9 w-9 rounded-full hover:bg-white/10 flex items-center justify-center" aria-label="Свернуть настройки">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-x-3 sm:gap-x-5 text-[11px] sm:text-xs">
+          <label class="block min-w-0">
+            <span class="flex justify-between gap-1 text-milk/60 mb-1"><span>Размер</span><output id="outScale">100%</output></span>
+            <input id="adjScale" type="range" min="50" max="160" value="100" aria-label="Размер вещи" />
+          </label>
+          <label class="block min-w-0">
+            <span class="flex justify-between gap-1 text-milk/60 mb-1"><span>← →</span><output id="outX">0</output></span>
+            <input id="adjX" type="range" min="-50" max="50" value="0" aria-label="Сдвиг влево или вправо" />
+          </label>
+          <label class="block min-w-0">
+            <span class="flex justify-between gap-1 text-milk/60 mb-1"><span>↓ ↑</span><output id="outY">0</output></span>
+            <input id="adjY" type="range" min="-50" max="50" value="0" aria-label="Сдвиг вниз или вверх" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-end justify-center gap-8 sm:gap-12 mb-4">
+        <button id="switchBtn" class="action-btn" disabled>
+          <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9a8 8 0 0114-3l2 2M20 15a8 8 0 01-14 3l-2-2"/><path d="M20 4v4h-4M4 20v-4h4"/></svg></span>
+          <span id="switchLabel">Камера</span>
+        </button>
+        <button id="photoBtn" class="w-[68px] h-[68px] rounded-full border-4 border-milk/90 p-1 transition active:scale-95" disabled aria-label="Сделать фото">
+          <span class="block w-full h-full rounded-full bg-milk"></span>
+        </button>
+      </div>
+
+      <input id="uploadInput" type="file" accept="image/png,image/webp" class="hidden" />
+      <input id="photoInput" type="file" accept="image/*" class="hidden" />
+    </div>
+  </section>
+</main>
+
+<script type="module">
+/* =============================================================================
+   MONTE — AR try-on
+   Everything runs locally in the browser: the camera stream never leaves the
+   device. Pose tracking: MediaPipe Pose Landmarker (33 landmarks).
+   Person segmentation: MediaPipe Selfie Segmenter (lets hands cover clothing).
+   Rendering: Canvas 2D (procedural demo garments + user-uploaded PNGs).
+
+   Sections (components):
+     1. Utilities          — vector math, colors, One Euro filter
+     2. CameraView         — camera stream, front/back switching, error messages
+     3. PoseTracker        — MediaPipe models, landmark smoothing, segmentation mask
+     4. GarmentOverlay     — body frame from landmarks, garment drawing, occlusion
+     5. Catalog            — demo items, category tabs, carousel, PNG upload
+     6. Controls           — action buttons, size/position sliders, color picker
+     7. App                — state, render loop, photo mode, wiring
+   ============================================================================= */
+
+// MediaPipe is imported lazily (see PoseTracker.init): no third-party code runs
+// until pose tracking is actually needed. The version is pinned.
+const VISION_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+const WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+const SEG_MODEL  = 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite';
+
+const $ = (s) => document.querySelector(s);
+
+/* =============================================================================
+   1. UTILITIES
+   ============================================================================= */
+
+const V = {
+  add:  (a, b) => ({ x: a.x + b.x, y: a.y + b.y }),
+  sub:  (a, b) => ({ x: a.x - b.x, y: a.y - b.y }),
+  mul:  (a, k) => ({ x: a.x * k, y: a.y * k }),
+  mid:  (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }),
+  lerp: (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }),
+  dist: (a, b) => Math.hypot(a.x - b.x, a.y - b.y),
+  dot:  (a, b) => a.x * b.x + a.y * b.y,
+  norm: (a) => { const l = Math.hypot(a.x, a.y) || 1; return { x: a.x / l, y: a.y / l }; },
+  // Rotates +90° in screen space (y points down): "right" axis -> "down" axis
+  perp: (a) => ({ x: -a.y, y: a.x })
+};
+
+// Point p shifted by `a` along axis u and `b` along axis v
+const at = (p, u, v, a, b) => ({ x: p.x + u.x * a + v.x * b, y: p.y + u.y * a + v.y * b });
+const angleOf = (u) => Math.atan2(u.y, u.x);
+const isVisible = (p, threshold = 0.5) => !!p && p.v >= threshold;
+
+// Lightens (amt > 0) or darkens (amt < 0) a hex color
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const target = amt < 0 ? 0 : 255, p = Math.abs(amt);
+  r = Math.round((target - r) * p + r);
+  g = Math.round((target - g) * p + g);
+  b = Math.round((target - b) * p + b);
+  return `rgb(${r},${g},${b})`;
+}
+
+/**
+ * One Euro filter (Casiez et al.): adaptive low-pass filter.
+ * Slow movement -> strong smoothing (no jitter); fast movement -> low latency.
+ * Works on pixel coordinates; time is in seconds.
+ */
+class OneEuroFilter {
+  constructor(minCutoff = 1.5, beta = 0.01, dCutoff = 1.0) {
+    this.minCutoff = minCutoff;
+    this.beta = beta;
+    this.dCutoff = dCutoff;
+    this.reset();
+  }
+  static alpha(cutoff, dt) {
+    const tau = 1 / (2 * Math.PI * cutoff);
+    return 1 / (1 + tau / dt);
+  }
+  reset() { this.x = null; this.dx = 0; this.t = null; }
+  filter(value, t) {
+    if (this.x === null) { this.x = value; this.t = t; return value; }
+    const dt = Math.max(t - this.t, 1e-3);
+    this.t = t;
+    const rawSpeed = (value - this.x) / dt;
+    this.dx += OneEuroFilter.alpha(this.dCutoff, dt) * (rawSpeed - this.dx);
+    const cutoff = this.minCutoff + this.beta * Math.abs(this.dx);
+    this.x += OneEuroFilter.alpha(cutoff, dt) * (value - this.x);
+    return this.x;
+  }
+}
+
+// Loads an image file into a canvas, downscaled so the longest side <= maxSide
+function loadImageToCanvas(file, maxSide) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k);
+      c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Bad image')); };
+    img.src = url;
+  });
+}
+
+// True if the image has (semi-)transparent pixels — checked on a 48×48 thumbnail
+function hasTransparency(canvas) {
+  const s = document.createElement('canvas');
+  s.width = s.height = 48;
+  const x = s.getContext('2d', { willReadFrequently: true });
+  x.drawImage(canvas, 0, 0, 48, 48);
+  const d = x.getImageData(0, 0, 48, 48).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true;
+  return false;
+}
+
+/* =============================================================================
+   2. CAMERA VIEW
+   ============================================================================= */
+
+class CameraView {
+  constructor(video) {
+    this.video = video;
+    this.stream = null;
+    this.facing = 'user';
+    this.mirror = true;
+  }
+
+  // Returns null if the camera can be used, otherwise a user-facing error
+  static checkSupport() {
+    if (!window.isSecureContext) {
+      return { title: 'Нужно защищённое соединение', text: 'Браузер разрешает доступ к камере только на сайтах с HTTPS (или на localhost). Откройте страницу по защищённому адресу.' };
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof WebAssembly !== 'object') {
+      return { title: 'Браузер не поддерживается', text: 'Ваш браузер не даёт доступ к камере или не поддерживает WebAssembly. Откройте страницу в свежей версии Chrome, Safari, Edge или Firefox.' };
+    }
+    return null;
+  }
+
+  static errorMessage(err) {
+    const name = err && err.name;
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+      return 'Вы запретили доступ к камере. Разрешите его в настройках браузера (значок камеры или замка в адресной строке) и нажмите «Попробовать снова».';
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
+      return 'Камера не найдена. Подключите камеру или откройте своё фото.';
+    }
+    if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError') {
+      return 'Камера занята другим приложением. Закройте его (например, видеозвонок) и попробуйте снова.';
+    }
+    return 'Не удалось включить камеру' + (err && err.message ? `: ${err.message}` : '.');
+  }
+
+  async start(facing = this.facing) {
+    this.stop();
+    // 640×480 keeps segmentation + compositing cheap enough for 25–30 FPS on phones
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: facing }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30, max: 30 } }
+    });
+    this.stream = stream;
+    this.video.srcObject = stream;
+    await this.video.play();
+    if (!this.video.videoWidth) {
+      await new Promise((r) => this.video.addEventListener('loadedmetadata', r, { once: true }));
+    }
+    const settings = stream.getVideoTracks()[0].getSettings();
+    this.facing = settings.facingMode || facing;
+    // Desktop webcams usually report no facingMode — treat them as front cameras
+    this.mirror = settings.facingMode ? settings.facingMode === 'user' : facing === 'user';
+  }
+
+  stop() {
+    if (this.stream) this.stream.getTracks().forEach((t) => t.stop());
+    this.stream = null;
+  }
+
+  async hasMultipleCameras() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.filter((d) => d.kind === 'videoinput').length > 1;
+    } catch { return false; }
+  }
+}
+
+/* =============================================================================
+   3. POSE TRACKER
+   ============================================================================= */
+
+class PoseTracker {
+  constructor() {
+    this.pose = null;
+    this.segmenter = null;
+    this.mode = 'VIDEO';
+    this.points = null;          // 33 smoothed landmarks in source pixels: {x, y, v}
+    this.missed = 0;
+    this.frame = 0;
+    this.lastVideoTime = -1;
+    this.filters = Array.from({ length: 33 }, () => ({ x: new OneEuroFilter(), y: new OneEuroFilter() }));
+    this.maskCanvas = document.createElement('canvas');
+    this.maskCtx = this.maskCanvas.getContext('2d');
+    this.maskImage = null;
+    this.maskReady = false;
+  }
+
+  async init(onStatus) {
+    onStatus('Загружаем движок распознавания…');
+    const { FilesetResolver, PoseLandmarker, ImageSegmenter } = await import(VISION_URL);
+    const fileset = await FilesetResolver.forVisionTasks(WASM_URL);
+
+    onStatus('Загружаем модель позы…');
+    this.pose = await this.#create(PoseLandmarker, fileset, POSE_MODEL, {
+      runningMode: 'VIDEO',
+      numPoses: 1,
+      minPoseDetectionConfidence: 0.5,
+      minPosePresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    onStatus('Загружаем модель сегментации…');
+    try {
+      this.segmenter = await this.#create(ImageSegmenter, fileset, SEG_MODEL, {
+        runningMode: 'VIDEO',
+        outputConfidenceMasks: true,
+        outputCategoryMask: false
+      });
+    } catch (err) {
+      // Try-on still works without segmentation; only hand occlusion is lost
+      console.warn('Selfie segmentation unavailable:', err);
+    }
+    this.mode = 'VIDEO';
+  }
+
+  // GPU delegate is much faster; fall back to CPU on devices without WebGL2 support
+  async #create(Task, fileset, modelAssetPath, options) {
+    try {
+      return await Task.createFromOptions(fileset, { baseOptions: { modelAssetPath, delegate: 'GPU' }, ...options });
+    } catch (err) {
+      console.warn('GPU delegate failed, falling back to CPU:', err);
+      return Task.createFromOptions(fileset, { baseOptions: { modelAssetPath, delegate: 'CPU' }, ...options });
+    }
+  }
+
+  resetSmoothing() {
+    this.filters.forEach((f) => { f.x.reset(); f.y.reset(); });
+    this.points = null;
+    this.lastVideoTime = -1;
+    this.maskReady = false;
+  }
+
+  async useVideoMode() {
+    if (this.mode !== 'VIDEO') {
+      await this.pose.setOptions({ runningMode: 'VIDEO' });
+      if (this.segmenter) await this.segmenter.setOptions({ runningMode: 'VIDEO' });
+      this.mode = 'VIDEO';
+    }
+    this.resetSmoothing();
+  }
+
+  /** Processes the current video frame. Returns false if there is no new frame. */
+  update(video, nowMs, wantMask) {
+    if (video.currentTime === this.lastVideoTime) return false;
+    this.lastVideoTime = video.currentTime;
+
+    const W = video.videoWidth, H = video.videoHeight, t = nowMs / 1000;
+    const result = this.pose.detectForVideo(video, nowMs);
+    const lm = result.landmarks && result.landmarks[0];
+
+    if (lm) {
+      this.missed = 0;
+      this.points = lm.map((p, i) => ({
+        x: this.filters[i].x.filter(p.x * W, t),
+        y: this.filters[i].y.filter(p.y * H, t),
+        v: p.visibility ?? 1
+      }));
+    } else if (++this.missed > 5) {
+      // Keep the last pose for a few frames to avoid flicker, then drop it
+      this.resetSmoothing();
+      this.lastVideoTime = video.currentTime;
+    }
+
+    // Segmentation every other frame is enough for hand occlusion and halves its cost
+    if (wantMask && this.segmenter && this.frame++ % 2 === 0) {
+      this.segmenter.segmentForVideo(video, nowMs, (res) => this.#storeMask(res));
+    }
+    return true;
+  }
+
+  /** Single still image (photo mode): no smoothing. */
+  async detectStill(img) {
+    if (this.mode !== 'IMAGE') {
+      await this.pose.setOptions({ runningMode: 'IMAGE' });
+      if (this.segmenter) await this.segmenter.setOptions({ runningMode: 'IMAGE' });
+      this.mode = 'IMAGE';
+    }
+    const result = this.pose.detect(img);
+    const lm = result.landmarks && result.landmarks[0];
+    this.points = lm ? lm.map((p) => ({ x: p.x * img.width, y: p.y * img.height, v: p.visibility ?? 1 })) : null;
+    this.maskReady = false;
+    if (this.segmenter) this.segmenter.segment(img, (res) => this.#storeMask(res));
+  }
+
+  // Converts the person-confidence mask into the alpha channel of maskCanvas
+  #storeMask(result) {
+    const masks = result.confidenceMasks;
+    if (!masks || !masks.length) return;
+    const m = masks[masks.length - 1];            // binary model: last mask = person
+    const w = m.width, h = m.height;
+    const data = m.getAsFloat32Array();
+    if (this.maskCanvas.width !== w || this.maskCanvas.height !== h || !this.maskImage) {
+      this.maskCanvas.width = w;
+      this.maskCanvas.height = h;
+      this.maskImage = this.maskCtx.createImageData(w, h);
+    }
+    const px = this.maskImage.data;
+    for (let i = 0, j = 3; i < data.length; i++, j += 4) {
+      const c = data[i];
+      px[j] = c <= 0.35 ? 0 : c >= 0.65 ? 255 : ((c - 0.35) / 0.3) * 255; // soft edge
+    }
+    this.maskCtx.putImageData(this.maskImage, 0, 0);
+    this.maskReady = true;
+  }
+}
+
+/* =============================================================================
+   4. GARMENT OVERLAY
+   ============================================================================= */
+
+/**
+ * Builds a body coordinate frame from the landmarks.
+ *   u  — unit vector along the shoulder line (right shoulder -> left shoulder)
+ *   v  — unit vector pointing "down" the body, perpendicular to u
+ *   sw — shoulder width; hw — hip width; torso — shoulder-mid to hip-mid distance
+ * Missing hips/knees/ankles are estimated so clothing still renders when the
+ * camera only sees the upper body.
+ */
+function computeBodyFrame(P) {
+  if (!P) return null;
+  const F = {
+    hasShoulders: isVisible(P[11]) && isVisible(P[12]),
+    hasHipsReal: isVisible(P[23]) && isVisible(P[24]),
+    hasKnees: isVisible(P[25], 0.4) && isVisible(P[26], 0.4)
+  };
+  if (!F.hasShoulders && !F.hasHipsReal) return F;
+
+  if (F.hasShoulders) {
+    F.ls = P[11]; F.rs = P[12];
+    F.sMid = V.mid(F.ls, F.rs);
+    F.sw = V.dist(F.ls, F.rs);
+    F.u = V.norm(V.sub(F.ls, F.rs));
+    F.v = V.perp(F.u);
+  }
+
+  if (F.hasHipsReal) {
+    F.lh = P[23]; F.rh = P[24];
+  } else {
+    // Hips below the frame: estimate them from the shoulders
+    F.lh = at(F.ls, F.u, F.v, -F.sw * 0.18, F.sw * 1.45);
+    F.rh = at(F.rs, F.u, F.v, F.sw * 0.18, F.sw * 1.45);
+  }
+  F.hMid = V.mid(F.lh, F.rh);
+  F.uh = V.norm(V.sub(F.lh, F.rh));
+  F.vh = V.perp(F.uh);
+
+  if (!F.hasShoulders) {
+    // Legs-only view: invent shoulders above the hips so bottoms can still render
+    const hipW = V.dist(F.lh, F.rh);
+    F.sw = hipW * 1.9;
+    F.u = F.uh; F.v = F.vh;
+    F.sMid = at(F.hMid, F.u, F.v, 0, -F.sw * 1.45);
+    F.ls = at(F.sMid, F.u, F.v, F.sw / 2, 0);
+    F.rs = at(F.sMid, F.u, F.v, -F.sw / 2, 0);
+  }
+
+  F.hw = Math.max(V.dist(F.lh, F.rh), F.sw * 0.45);
+  F.torso = V.dist(F.sMid, F.hMid);
+  F.down = V.norm(V.sub(F.hMid, F.sMid));
+
+  const leg = (hip, kneeIdx, ankleIdx) => {
+    const knee = isVisible(P[kneeIdx], 0.4) ? P[kneeIdx] : V.add(hip, V.mul(F.down, F.torso * 0.95));
+    const ankle = isVisible(P[ankleIdx], 0.4) ? P[ankleIdx] : V.add(knee, V.mul(V.norm(V.sub(knee, hip)), V.dist(knee, hip)));
+    return { hip, knee, ankle };
+  };
+  F.lLeg = leg(F.lh, 25, 27);
+  F.rLeg = leg(F.rh, 26, 28);
+
+  const arm = (sh, elbowIdx, wristIdx) => {
+    const e = isVisible(P[elbowIdx], 0.3) ? P[elbowIdx] : V.add(sh, V.mul(F.down, F.sw * 0.75));
+    const w = isVisible(P[wristIdx], 0.3) ? P[wristIdx] : V.add(e, V.mul(V.norm(V.sub(e, sh)), F.sw * 0.7));
+    return { sh, e, w };
+  };
+  F.lArm = arm(F.ls, 13, 15);
+  F.rArm = arm(F.rs, 14, 16);
+  return F;
+}
+
+/** Head frame from face landmarks 0–10 (nose, eyes, ears, mouth). */
+function computeHeadFrame(P) {
+  if (!P) return null;
+  const le = P[2], re = P[5];
+  if (!(isVisible(le) && isVisible(re) && isVisible(P[0]))) return null;
+  const ed = V.dist(le, re);
+  const u = V.norm(V.sub(le, re));
+  const ears = isVisible(P[7], 0.3) && isVisible(P[8], 0.3);
+  return {
+    eMid: V.mid(le, re),
+    ed,
+    u,
+    v: V.perp(u),
+    headW: ears ? Math.max(V.dist(P[7], P[8]), ed * 1.8) : ed * 2.3
+  };
+}
+
+// ---------- Drawing primitives ----------
+
+function pathFrom(ctx, pts) {
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+}
+
+// Fills a garment shape with its color plus soft side shading for volume
+function fabric(ctx, build, color, across, edgeWidth, rule = 'nonzero') {
+  build();
+  ctx.fillStyle = color;
+  ctx.fill(rule);
+
+  ctx.save();
+  build();
+  ctx.clip(rule);
+  const g = ctx.createLinearGradient(across[0].x, across[0].y, across[1].x, across[1].y);
+  g.addColorStop(0, 'rgba(0,0,0,0.30)');
+  g.addColorStop(0.22, 'rgba(0,0,0,0)');
+  g.addColorStop(0.5, 'rgba(255,255,255,0.07)');
+  g.addColorStop(0.78, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.30)');
+  ctx.fillStyle = g;
+  build();
+  ctx.fill(rule);
+  ctx.restore();
+
+  if (edgeWidth) {
+    build();
+    ctx.strokeStyle = shade(color, -0.35);
+    ctx.lineWidth = edgeWidth;
+    ctx.stroke();
+  }
+}
+
+// Sleeves / straps as a thick polyline with a darker outline
+function limb(ctx, pts, width, color) {
+  ctx.save();
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.strokeStyle = shade(color, -0.32);
+  ctx.lineWidth = width * 1.08;
+  ctx.stroke();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Sleeves start slightly inside the torso so the seam is hidden under it
+const sleeveStart = (F, arm) => at(V.lerp(arm.sh, F.sMid, 0.25), F.u, F.v, 0, F.sw * 0.05);
+
+/** Shared torso outline for tops. o: shape options. */
+function topShape(F, o) {
+  const { u, v, sw } = F;
+  const LS = at(F.ls, u, v, sw * o.shoulder, -sw * 0.03);
+  const RS = at(F.rs, u, v, -sw * o.shoulder, -sw * 0.03);
+  const armL = at(F.ls, u, v, sw * (o.shoulder - 0.04), sw * 0.45);
+  const armR = at(F.rs, u, v, -sw * (o.shoulder - 0.04), sw * 0.45);
+  const hemL = at(F.hMid, F.uh, F.vh, sw * o.hem, F.torso * o.drop);
+  const hemR = at(F.hMid, F.uh, F.vh, -sw * o.hem, F.torso * o.drop);
+  const waistL = at(V.mid(armL, hemL), u, v, -sw * 0.03, 0);
+  const waistR = at(V.mid(armR, hemR), u, v, sw * 0.03, 0);
+  const neckL = at(F.sMid, u, v, sw * o.neckW, -sw * 0.06);
+  const neckR = at(F.sMid, u, v, -sw * o.neckW, -sw * 0.06);
+  const neckCtl = at(F.sMid, u, v, 0, sw * o.neckDepth);
+  const hemCtl = at(F.hMid, F.uh, F.vh, 0, F.torso * o.drop + sw * 0.03);
+  return {
+    neckL, neckR, neckCtl, hemL, hemR, hemCtl,
+    build(ctx) {
+      ctx.beginPath();
+      ctx.moveTo(neckL.x, neckL.y);
+      ctx.lineTo(LS.x, LS.y);
+      ctx.lineTo(armL.x, armL.y);
+      ctx.quadraticCurveTo(waistL.x, waistL.y, hemL.x, hemL.y);
+      ctx.quadraticCurveTo(hemCtl.x, hemCtl.y, hemR.x, hemR.y);
+      ctx.quadraticCurveTo(waistR.x, waistR.y, armR.x, armR.y);
+      ctx.lineTo(RS.x, RS.y);
+      ctx.lineTo(neckR.x, neckR.y);
+      ctx.quadraticCurveTo(neckCtl.x, neckCtl.y, neckL.x, neckL.y);
+      ctx.closePath();
+    }
+  };
+}
+
+const acrossTorso = (F) => [at(F.sMid, F.u, F.v, -F.sw * 0.62, 0), at(F.sMid, F.u, F.v, F.sw * 0.62, 0)];
+
+// ---------- Demo garments (procedural, Canvas 2D) ----------
+// Signature: (ctx, bodyFrame, headFrame, color)
+
+function drawTee(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const sw = F.sw;
+  for (const a of [F.lArm, F.rArm]) {
+    const start = sleeveStart(F, a);
+    const end = V.lerp(a.sh, a.e, 0.48);
+    limb(ctx, [start, end], sw * 0.34, color);
+    limb(ctx, [V.lerp(a.sh, a.e, 0.4), end], sw * 0.345, shade(color, -0.08)); // cuff
+  }
+  const s = topShape(F, { shoulder: 0.07, hem: 0.5, drop: 0.1, neckW: 0.16, neckDepth: 0.2 });
+  fabric(ctx, () => s.build(ctx), color, acrossTorso(F), Math.max(1, sw * 0.012));
+  // Ribbed neckline
+  ctx.beginPath();
+  ctx.moveTo(s.neckR.x, s.neckR.y);
+  ctx.quadraticCurveTo(s.neckCtl.x, s.neckCtl.y, s.neckL.x, s.neckL.y);
+  ctx.strokeStyle = shade(color, -0.18);
+  ctx.lineWidth = sw * 0.04;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+function drawHoodie(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const { u, v, sw } = F;
+  for (const a of [F.lArm, F.rArm]) {
+    limb(ctx, [sleeveStart(F, a), a.e, a.w], sw * 0.36, color);
+    limb(ctx, [V.lerp(a.e, a.w, 0.82), a.w], sw * 0.3, shade(color, -0.14)); // ribbed cuff
+  }
+  // Hood folded behind the neck
+  const hc = at(F.sMid, u, v, 0, -sw * 0.03);
+  ctx.save();
+  ctx.translate(hc.x, hc.y);
+  ctx.rotate(angleOf(u));
+  ctx.beginPath();
+  ctx.ellipse(0, 0, sw * 0.33, sw * 0.15, 0, 0, Math.PI * 2);
+  ctx.fillStyle = shade(color, -0.22);
+  ctx.fill();
+  ctx.restore();
+
+  const s = topShape(F, { shoulder: 0.09, hem: 0.54, drop: 0.16, neckW: 0.15, neckDepth: 0.16 });
+  fabric(ctx, () => s.build(ctx), color, acrossTorso(F), Math.max(1, sw * 0.012));
+
+  ctx.save();
+  s.build(ctx);
+  ctx.clip();
+  // Ribbed hem band
+  ctx.beginPath();
+  ctx.moveTo(s.hemL.x, s.hemL.y);
+  ctx.quadraticCurveTo(s.hemCtl.x, s.hemCtl.y, s.hemR.x, s.hemR.y);
+  ctx.strokeStyle = shade(color, -0.14);
+  ctx.lineWidth = sw * 0.13;
+  ctx.stroke();
+  // Kangaroo pocket
+  const { uh, vh } = F;
+  pathFrom(ctx, [
+    at(F.hMid, uh, vh, -sw * 0.25, -F.torso * 0.22), at(F.hMid, uh, vh, sw * 0.25, -F.torso * 0.22),
+    at(F.hMid, uh, vh, sw * 0.33, F.torso * 0.07), at(F.hMid, uh, vh, -sw * 0.33, F.torso * 0.07)
+  ]);
+  ctx.fillStyle = shade(color, -0.06);
+  ctx.fill();
+  ctx.strokeStyle = shade(color, -0.28);
+  ctx.lineWidth = Math.max(1, sw * 0.012);
+  ctx.stroke();
+  ctx.restore();
+
+  // Hood opening + drawstrings
+  ctx.beginPath();
+  ctx.moveTo(s.neckR.x, s.neckR.y);
+  ctx.quadraticCurveTo(s.neckCtl.x, s.neckCtl.y, s.neckL.x, s.neckL.y);
+  ctx.strokeStyle = shade(color, -0.25);
+  ctx.lineWidth = sw * 0.05;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.strokeStyle = shade(color, 0.55);
+  ctx.lineWidth = sw * 0.02;
+  for (const side of [-1, 1]) {
+    const a = at(F.sMid, u, v, side * sw * 0.06, sw * 0.07);
+    const b = at(F.sMid, u, v, side * sw * 0.07, sw * 0.38);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+}
+
+function drawJacket(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const { u, v, sw, uh, vh } = F;
+  for (const a of [F.lArm, F.rArm]) {
+    limb(ctx, [sleeveStart(F, a), a.e, a.w], sw * 0.38, color);
+    limb(ctx, [V.lerp(a.e, a.w, 0.88), a.w], sw * 0.385, shade(color, -0.1));
+  }
+  const s = topShape(F, { shoulder: 0.1, hem: 0.56, drop: 0.22, neckW: 0.13, neckDepth: 0.1 });
+
+  // Back collar, visible above the neckline
+  ctx.beginPath();
+  const backCtl = at(F.sMid, u, v, 0, -sw * 0.1);
+  ctx.moveTo(s.neckR.x, s.neckR.y);
+  ctx.quadraticCurveTo(backCtl.x, backCtl.y, s.neckL.x, s.neckL.y);
+  ctx.strokeStyle = shade(color, -0.12);
+  ctx.lineWidth = sw * 0.06;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Open front: a V-shaped hole (even-odd fill) shows the clothes underneath
+  const oTopL = at(F.sMid, u, v, sw * 0.03, sw * 0.05);
+  const oTopR = at(F.sMid, u, v, -sw * 0.03, sw * 0.05);
+  const oBot = at(F.hMid, uh, vh, 0, F.torso * 0.25);
+  const oBotL = at(oBot, uh, vh, sw * 0.06, 0);
+  const oBotR = at(oBot, uh, vh, -sw * 0.06, 0);
+  const build = () => {
+    s.build(ctx);
+    ctx.moveTo(oTopL.x, oTopL.y);
+    ctx.lineTo(oBotL.x, oBotL.y);
+    ctx.lineTo(oBotR.x, oBotR.y);
+    ctx.lineTo(oTopR.x, oTopR.y);
+    ctx.closePath();
+  };
+  fabric(ctx, build, color, acrossTorso(F), Math.max(1, sw * 0.012), 'evenodd');
+
+  // Lapels
+  for (const side of [1, -1]) {
+    pathFrom(ctx, [
+      at(F.sMid, u, v, side * sw * 0.035, sw * 0.05),
+      at(F.sMid, u, v, side * sw * 0.13, -sw * 0.035),
+      at(F.sMid, u, v, side * sw * 0.22, sw * 0.24),
+      at(F.sMid, u, v, side * sw * 0.065, F.torso * 0.5)
+    ]);
+    ctx.fillStyle = shade(color, -0.14);
+    ctx.fill();
+    ctx.strokeStyle = shade(color, -0.38);
+    ctx.lineWidth = Math.max(1, sw * 0.01);
+    ctx.stroke();
+  }
+  // Pocket flaps
+  ctx.strokeStyle = shade(color, -0.32);
+  ctx.lineWidth = sw * 0.025;
+  ctx.lineCap = 'round';
+  for (const side of [1, -1]) {
+    const a = at(F.hMid, uh, vh, side * sw * 0.18, -F.torso * 0.02);
+    const b = at(F.hMid, uh, vh, side * sw * 0.42, -F.torso * 0.06);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+}
+
+// opts.short — cut at mid-thigh (shorts); opts.jeans — denim details instead of creases
+function drawPants(ctx, F, H, color, opts = {}) {
+  if (!(F.hasShoulders || F.hasHipsReal)) return;
+  const { uh, vh, hw } = F;
+  const wk = opts.short ? [0.4, -0.35] : [0.34, -0.3];    // half-widths at the knee point
+  const wa = opts.short ? [0.43, -0.37] : [0.3, -0.28];   // half-widths at the hem point
+  // For shorts the "knee"/"ankle" of the outline move up the thigh
+  const legOf = (leg) => opts.short
+    ? { hip: leg.hip, knee: V.lerp(leg.hip, leg.knee, 0.4), ankle: V.lerp(leg.hip, leg.knee, 0.66) }
+    : leg;
+  const legOutline = (leg, side) => {
+    const d1 = V.norm(V.sub(leg.knee, leg.hip));
+    const d2 = V.norm(V.sub(leg.ankle, leg.knee));
+    // Normal pointing away from the body center
+    const outward = (d) => { const p = V.perp(d); return V.dot(p, uh) * side < 0 ? V.mul(p, -1) : p; };
+    const n1 = outward(d1), n2 = outward(d2), nk = V.norm(V.add(n1, n2));
+    return {
+      hipOut: V.add(leg.hip, V.mul(n1, hw * 0.42)),
+      kneeOut: V.add(leg.knee, V.mul(nk, hw * wk[0])),
+      kneeIn: V.add(leg.knee, V.mul(nk, hw * wk[1])),
+      ankleOut: V.add(leg.ankle, V.mul(n2, hw * wa[0])),
+      ankleIn: V.add(leg.ankle, V.mul(n2, hw * wa[1]))
+    };
+  };
+  const L = legOutline(legOf(F.lLeg), 1), R = legOutline(legOf(F.rLeg), -1);
+  const waistL = at(F.lh, uh, vh, hw * 0.42, -hw * 0.42);
+  const waistR = at(F.rh, uh, vh, -hw * 0.42, -hw * 0.42);
+  const crotch = at(F.hMid, uh, vh, 0, hw * 0.75);
+  const pts = [waistR, R.hipOut, R.kneeOut, R.ankleOut, R.ankleIn, R.kneeIn, crotch,
+               L.kneeIn, L.ankleIn, L.ankleOut, L.kneeOut, L.hipOut, waistL];
+  const build = () => pathFrom(ctx, pts);
+  fabric(ctx, build, color, [at(F.hMid, uh, vh, -hw * 1.1, 0), at(F.hMid, uh, vh, hw * 1.1, 0)], Math.max(1, hw * 0.02));
+
+  ctx.save();
+  build();
+  ctx.clip();
+  // Waistband
+  const b1 = at(waistR, uh, vh, 0, hw * 0.06), b2 = at(waistL, uh, vh, 0, hw * 0.06);
+  ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y);
+  ctx.strokeStyle = shade(color, -0.16);
+  ctx.lineWidth = hw * 0.16;
+  ctx.stroke();
+  // Fly
+  const f1 = at(F.hMid, uh, vh, hw * 0.04, -hw * 0.3), f2 = at(F.hMid, uh, vh, hw * 0.04, hw * 0.45);
+  ctx.beginPath(); ctx.moveTo(f1.x, f1.y); ctx.lineTo(f2.x, f2.y);
+  ctx.strokeStyle = shade(color, -0.32);
+  ctx.lineWidth = Math.max(1, hw * 0.02);
+  ctx.stroke();
+  if (opts.jeans) {
+    // Contrast stitching: front pockets and outer seams
+    ctx.strokeStyle = 'rgba(222,170,90,0.8)';
+    ctx.lineWidth = Math.max(1, hw * 0.018);
+    ctx.setLineDash([hw * 0.05, hw * 0.035]);
+    for (const side of [1, -1]) {
+      const a = at(F.hMid, uh, vh, side * hw * 0.3, -hw * 0.33);
+      const c = at(F.hMid, uh, vh, side * hw * 0.35, hw * 0.12);
+      const b = at(F.hMid, uh, vh, side * hw * 0.95, hw * 0.05);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(c.x, c.y, b.x, b.y); ctx.stroke();
+    }
+    for (const o of [L, R]) {
+      ctx.beginPath(); ctx.moveTo(o.hipOut.x, o.hipOut.y); ctx.lineTo(o.kneeOut.x, o.kneeOut.y); ctx.lineTo(o.ankleOut.x, o.ankleOut.y); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  } else if (!opts.short) {
+    // Pressed creases
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+    ctx.lineWidth = hw * 0.03;
+    for (const [o, side] of [[L, F.lLeg], [R, F.rLeg]]) {
+      const k = V.mid(o.kneeOut, o.kneeIn), a = V.mid(o.ankleOut, o.ankleIn);
+      const top = V.lerp(side.hip, k, 0.15);
+      ctx.beginPath(); ctx.moveTo(top.x, top.y); ctx.lineTo(k.x, k.y); ctx.lineTo(a.x, a.y); ctx.stroke();
+    }
+  }
+  if (opts.short) {
+    // Turned-up hems
+    ctx.strokeStyle = shade(color, -0.18);
+    ctx.lineWidth = hw * 0.12;
+    for (const o of [L, R]) {
+      ctx.beginPath(); ctx.moveTo(o.ankleOut.x, o.ankleOut.y); ctx.lineTo(o.ankleIn.x, o.ankleIn.y); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+const drawJeans = (ctx, F, H, color) => drawPants(ctx, F, H, color, { jeans: true });
+const drawShorts = (ctx, F, H, color) => drawPants(ctx, F, H, color, { short: true });
+
+function drawSkirt(ctx, F, H, color) {
+  if (!(F.hasShoulders || F.hasHipsReal)) return;
+  const { uh, vh, hw } = F;
+  const legLen = (V.dist(F.lLeg.hip, F.lLeg.knee) + V.dist(F.rLeg.hip, F.rLeg.knee)) / 2;
+  const waistL = at(F.lh, uh, vh, hw * 0.4, -hw * 0.42);
+  const waistR = at(F.rh, uh, vh, -hw * 0.4, -hw * 0.42);
+  const hemC = at(F.hMid, uh, vh, 0, legLen * 0.78);
+  const hemL = at(hemC, uh, vh, hw * 1.15, 0);
+  const hemR = at(hemC, uh, vh, -hw * 1.15, 0);
+  const sideL = at(V.mid(waistL, hemL), uh, vh, hw * 0.1, 0);
+  const sideR = at(V.mid(waistR, hemR), uh, vh, -hw * 0.1, 0);
+  const hemCtl = at(hemC, uh, vh, 0, hw * 0.2);
+  const build = () => {
+    ctx.beginPath();
+    ctx.moveTo(waistR.x, waistR.y);
+    ctx.quadraticCurveTo(sideR.x, sideR.y, hemR.x, hemR.y);
+    ctx.quadraticCurveTo(hemCtl.x, hemCtl.y, hemL.x, hemL.y);
+    ctx.quadraticCurveTo(sideL.x, sideL.y, waistL.x, waistL.y);
+    ctx.closePath();
+  };
+  fabric(ctx, build, color, [at(F.hMid, uh, vh, -hw * 1.3, 0), at(F.hMid, uh, vh, hw * 1.3, 0)], Math.max(1, hw * 0.02));
+
+  ctx.save();
+  build();
+  ctx.clip();
+  // Pleats fanning out from the waist
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = Math.max(1, hw * 0.025);
+  for (let i = 1; i < 6; i++) {
+    const a = V.lerp(waistR, waistL, i / 6), b = V.lerp(hemR, hemL, i / 6);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  // Waistband
+  const b1 = at(waistR, uh, vh, 0, hw * 0.06), b2 = at(waistL, uh, vh, 0, hw * 0.06);
+  ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y);
+  ctx.strokeStyle = shade(color, -0.16);
+  ctx.lineWidth = hw * 0.16;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCap(ctx, F, H, color) {
+  if (!H) return;
+  const W = H.headW;
+  const c = at(H.eMid, H.u, H.v, 0, -W * 0.36);   // base of the crown, on the forehead
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(angleOf(H.u));
+
+  const dome = () => { ctx.beginPath(); ctx.ellipse(0, 0, W * 0.56, W * 0.6, 0, Math.PI, Math.PI * 2); ctx.closePath(); };
+  dome();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.save();
+  dome();
+  ctx.clip();
+  const g = ctx.createRadialGradient(-W * 0.15, -W * 0.4, W * 0.05, 0, -W * 0.2, W * 0.7);
+  g.addColorStop(0, 'rgba(255,255,255,0.16)');
+  g.addColorStop(1, 'rgba(0,0,0,0.28)');
+  ctx.fillStyle = g;
+  dome();
+  ctx.fill();
+  ctx.restore();
+
+  // Panel seams and top button
+  ctx.strokeStyle = shade(color, -0.3);
+  ctx.lineWidth = Math.max(1, W * 0.012);
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(0, -W * 0.6);
+    ctx.quadraticCurveTo(side * W * 0.22, -W * 0.42, side * W * 0.3, 0);
+    ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(0, -W * 0.6); ctx.lineTo(0, 0); ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, -W * 0.6, W * 0.045, 0, Math.PI * 2);
+  ctx.fillStyle = shade(color, -0.15);
+  ctx.fill();
+
+  // Visor
+  ctx.beginPath();
+  ctx.moveTo(-W * 0.58, 0);
+  ctx.quadraticCurveTo(0, W * 0.22, W * 0.58, 0);
+  ctx.quadraticCurveTo(0, W * 0.07, -W * 0.58, 0);
+  ctx.fillStyle = shade(color, -0.12);
+  ctx.fill();
+  ctx.strokeStyle = shade(color, -0.38);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawGlasses(ctx, F, H, color) {
+  if (!H) return;
+  const e = H.ed, lw = e * 0.78, lh = e * 0.55, r = e * 0.16;
+  ctx.save();
+  ctx.translate(H.eMid.x, H.eMid.y);
+  ctx.rotate(angleOf(H.u));
+
+  // Temples (arms) towards the ears
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1, e * 0.05);
+  ctx.lineCap = 'round';
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * (e * 0.5 + lw / 2), -lh * 0.3);
+    ctx.lineTo(side * H.headW * 0.5, -lh * 0.15);
+    ctx.stroke();
+  }
+  // Tinted lenses with a reflection
+  for (const side of [-1, 1]) {
+    const x = side * e * 0.5 - lw / 2, y = -lh / 2;
+    roundRectPath(ctx, x, y, lw, lh, r);
+    ctx.fillStyle = 'rgba(14,14,16,0.62)';
+    ctx.fill();
+    const g = ctx.createLinearGradient(x, y, x + lw, y + lh);
+    g.addColorStop(0, 'rgba(255,255,255,0.22)');
+    g.addColorStop(0.45, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, e * 0.075);
+    ctx.stroke();
+  }
+  // Bridge
+  ctx.beginPath();
+  ctx.moveTo(-e * 0.5 + lw / 2, -lh * 0.2);
+  ctx.quadraticCurveTo(0, -lh * 0.45, e * 0.5 - lw / 2, -lh * 0.2);
+  ctx.lineWidth = Math.max(1, e * 0.06);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawScarf(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const { u, v, sw } = F;
+  const s = F.sMid;
+
+  // Hanging tail
+  const t0 = at(s, u, v, sw * 0.09, sw * 0.02);
+  const dir = V.norm(V.add(v, V.mul(u, 0.08)));
+  const pu = V.perp(dir);
+  const tw = sw * 0.16, tl = sw * 0.78;
+  const a = V.add(t0, V.mul(pu, tw / 2)), b = V.add(t0, V.mul(pu, -tw / 2));
+  const c = V.add(b, V.mul(dir, tl)), d = V.add(a, V.mul(dir, tl));
+  fabric(ctx, () => pathFrom(ctx, [a, b, c, d]), color, [a, b], Math.max(1, sw * 0.01));
+  // Stripes near the end
+  ctx.strokeStyle = shade(color, 0.35);
+  ctx.lineWidth = sw * 0.025;
+  for (const k of [0.74, 0.84]) {
+    const p1 = V.lerp(a, d, k), p2 = V.lerp(b, c, k);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  }
+  // Fringe
+  ctx.strokeStyle = shade(color, -0.1);
+  ctx.lineWidth = Math.max(1, sw * 0.012);
+  for (let i = 0; i <= 6; i++) {
+    const p = V.lerp(d, c, i / 6), q = V.add(p, V.mul(dir, sw * 0.06));
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+  }
+
+  // Wrap around the neck
+  const w1 = at(s, u, v, -sw * 0.27, -sw * 0.07), w2 = at(s, u, v, sw * 0.27, -sw * 0.07);
+  const wc = at(s, u, v, 0, sw * 0.16);
+  const wrap = () => { ctx.beginPath(); ctx.moveTo(w1.x, w1.y); ctx.quadraticCurveTo(wc.x, wc.y, w2.x, w2.y); };
+  ctx.lineCap = 'round';
+  wrap(); ctx.strokeStyle = shade(color, -0.32); ctx.lineWidth = sw * 0.19; ctx.stroke();
+  wrap(); ctx.strokeStyle = color; ctx.lineWidth = sw * 0.17; ctx.stroke();
+  const f1 = at(w1, u, v, sw * 0.02, -sw * 0.03), f2 = at(w2, u, v, -sw * 0.02, -sw * 0.03), fc = at(wc, u, v, 0, -sw * 0.03);
+  ctx.beginPath(); ctx.moveTo(f1.x, f1.y); ctx.quadraticCurveTo(fc.x, fc.y, f2.x, f2.y);
+  ctx.strokeStyle = shade(color, -0.15); ctx.lineWidth = Math.max(1, sw * 0.015); ctx.stroke();
+}
+
+// ---------- More tops ----------
+
+function neckline(ctx, s, color, width) {
+  ctx.beginPath();
+  ctx.moveTo(s.neckR.x, s.neckR.y);
+  ctx.quadraticCurveTo(s.neckCtl.x, s.neckCtl.y, s.neckL.x, s.neckL.y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+function drawLongsleeve(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const sw = F.sw;
+  for (const a of [F.lArm, F.rArm]) {
+    limb(ctx, [sleeveStart(F, a), a.e, a.w], sw * 0.31, color);
+    limb(ctx, [V.lerp(a.e, a.w, 0.85), a.w], sw * 0.29, shade(color, -0.1));
+  }
+  const s = topShape(F, { shoulder: 0.06, hem: 0.5, drop: 0.12, neckW: 0.15, neckDepth: 0.17 });
+  fabric(ctx, () => s.build(ctx), color, acrossTorso(F), Math.max(1, sw * 0.012));
+  // Fine rib texture
+  ctx.save();
+  s.build(ctx);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = Math.max(1, sw * 0.012);
+  for (let i = -8; i <= 8; i++) {
+    const a = at(F.sMid, F.u, F.v, i * sw * 0.065, -sw * 0.1);
+    const b = at(F.hMid, F.uh, F.vh, i * sw * 0.065, F.torso * 0.3);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.restore();
+  neckline(ctx, s, shade(color, -0.18), sw * 0.04);
+}
+
+function drawSweater(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const { u, v, sw } = F;
+  for (const a of [F.lArm, F.rArm]) {
+    limb(ctx, [sleeveStart(F, a), a.e, a.w], sw * 0.39, color);
+    limb(ctx, [V.lerp(a.e, a.w, 0.8), a.w], sw * 0.33, shade(color, -0.12));
+  }
+  const s = topShape(F, { shoulder: 0.1, hem: 0.56, drop: 0.14, neckW: 0.13, neckDepth: 0.1 });
+  fabric(ctx, () => s.build(ctx), color, acrossTorso(F), Math.max(1, sw * 0.012));
+  ctx.save();
+  s.build(ctx);
+  ctx.clip();
+  // Cable-knit columns
+  ctx.lineWidth = sw * 0.05;
+  for (let i = -3; i <= 3; i++) {
+    const a = at(F.sMid, u, v, i * sw * 0.14, -sw * 0.1);
+    const b = at(F.hMid, F.uh, F.vh, i * sw * 0.15, F.torso * 0.3);
+    ctx.strokeStyle = i % 2 ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)';
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  // Ribbed hem
+  ctx.beginPath();
+  ctx.moveTo(s.hemL.x, s.hemL.y);
+  ctx.quadraticCurveTo(s.hemCtl.x, s.hemCtl.y, s.hemR.x, s.hemR.y);
+  ctx.strokeStyle = shade(color, -0.12);
+  ctx.lineWidth = sw * 0.16;
+  ctx.stroke();
+  ctx.restore();
+  neckline(ctx, s, shade(color, -0.15), sw * 0.07);
+}
+
+function drawShirt(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const { u, v, sw } = F;
+  for (const a of [F.lArm, F.rArm]) {
+    limb(ctx, [sleeveStart(F, a), a.e, a.w], sw * 0.32, color);
+    limb(ctx, [V.lerp(a.e, a.w, 0.84), a.w], sw * 0.3, shade(color, -0.08));
+  }
+  const s = topShape(F, { shoulder: 0.07, hem: 0.52, drop: 0.16, neckW: 0.1, neckDepth: 0.05 });
+  fabric(ctx, () => s.build(ctx), color, acrossTorso(F), Math.max(1, sw * 0.012));
+
+  // Button placket
+  const top = at(F.sMid, u, v, 0, sw * 0.05);
+  const bottom = at(F.hMid, F.uh, F.vh, 0, F.torso * 0.16);
+  ctx.strokeStyle = shade(color, -0.22);
+  ctx.lineWidth = Math.max(1, sw * 0.012);
+  for (const off of [-1, 1]) {
+    const a = at(top, u, v, off * sw * 0.025, 0), b = at(bottom, F.uh, F.vh, off * sw * 0.025, 0);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.fillStyle = shade(color, -0.32);
+  for (let i = 0; i < 6; i++) {
+    const p = V.lerp(top, bottom, (i + 0.5) / 6.3);
+    ctx.beginPath(); ctx.arc(p.x, p.y, sw * 0.014, 0, Math.PI * 2); ctx.fill();
+  }
+  // Chest pocket
+  const pk = at(F.sMid, u, v, sw * 0.2, sw * 0.32);
+  ctx.save();
+  ctx.translate(pk.x, pk.y);
+  ctx.rotate(angleOf(u));
+  ctx.strokeRect(-sw * 0.08, -sw * 0.07, sw * 0.16, sw * 0.17);
+  ctx.restore();
+  // Collar points
+  for (const side of [1, -1]) {
+    pathFrom(ctx, [
+      at(F.sMid, u, v, side * sw * 0.12, -sw * 0.07),
+      at(F.sMid, u, v, side * sw * 0.01, sw * 0.08),
+      at(F.sMid, u, v, side * sw * 0.2, sw * 0.06)
+    ]);
+    ctx.fillStyle = shade(color, 0.08);
+    ctx.fill();
+    ctx.strokeStyle = shade(color, -0.3);
+    ctx.stroke();
+  }
+}
+
+// ---------- More headwear ----------
+
+function drawBeanie(ctx, F, H, color) {
+  if (!H) return;
+  const W = H.headW;
+  const c = at(H.eMid, H.u, H.v, 0, -W * 0.3);
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(angleOf(H.u));
+  const dome = () => { ctx.beginPath(); ctx.ellipse(0, -W * 0.04, W * 0.55, W * 0.66, 0, Math.PI, Math.PI * 2); ctx.closePath(); };
+  dome();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.save();
+  dome();
+  ctx.clip();
+  ctx.lineWidth = W * 0.03;
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  for (let i = -5; i <= 5; i++) {
+    ctx.beginPath(); ctx.moveTo(i * W * 0.1, 0); ctx.lineTo(i * W * 0.03, -W * 0.72); ctx.stroke();
+  }
+  ctx.restore();
+  // Folded ribbed cuff
+  roundRectPath(ctx, -W * 0.58, -W * 0.16, W * 1.16, W * 0.22, W * 0.06);
+  ctx.fillStyle = shade(color, -0.1);
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = W * 0.02;
+  for (let x = -W * 0.56; x < W * 0.58; x += W * 0.06) {
+    ctx.beginPath(); ctx.moveTo(x, -W * 0.16); ctx.lineTo(x, W * 0.06); ctx.stroke();
+  }
+  ctx.restore();
+  // Woven label
+  ctx.fillStyle = '#F4EFE6';
+  ctx.fillRect(-W * 0.09, -W * 0.1, W * 0.18, W * 0.1);
+  ctx.restore();
+}
+
+function drawBucketHat(ctx, F, H, color) {
+  if (!H) return;
+  const W = H.headW;
+  const c = at(H.eMid, H.u, H.v, 0, -W * 0.3);
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(angleOf(H.u));
+  // Crown
+  const crown = () => {
+    ctx.beginPath();
+    ctx.moveTo(-W * 0.48, 0);
+    ctx.lineTo(-W * 0.4, -W * 0.5);
+    ctx.quadraticCurveTo(0, -W * 0.62, W * 0.4, -W * 0.5);
+    ctx.lineTo(W * 0.48, 0);
+    ctx.closePath();
+  };
+  fabric(ctx, crown, color, [{ x: -W * 0.5, y: 0 }, { x: W * 0.5, y: 0 }], Math.max(1, W * 0.012));
+  ctx.fillStyle = shade(color, -0.12);
+  ctx.fillRect(-W * 0.47, -W * 0.1, W * 0.94, W * 0.1);
+  // Sloping brim
+  ctx.beginPath();
+  ctx.moveTo(-W * 0.5, -W * 0.02);
+  ctx.quadraticCurveTo(-W * 0.72, W * 0.12, -W * 0.74, W * 0.2);
+  ctx.quadraticCurveTo(0, W * 0.34, W * 0.74, W * 0.2);
+  ctx.quadraticCurveTo(W * 0.72, W * 0.12, W * 0.5, -W * 0.02);
+  ctx.closePath();
+  ctx.fillStyle = shade(color, -0.05);
+  ctx.fill();
+  ctx.strokeStyle = shade(color, -0.32);
+  ctx.lineWidth = Math.max(1, W * 0.012);
+  ctx.stroke();
+  // Brim stitching
+  ctx.setLineDash([W * 0.03, W * 0.025]);
+  ctx.beginPath();
+  ctx.moveTo(-W * 0.66, W * 0.17);
+  ctx.quadraticCurveTo(0, W * 0.27, W * 0.66, W * 0.17);
+  ctx.strokeStyle = shade(color, -0.25);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawBeret(ctx, F, H, color) {
+  if (!H) return;
+  const W = H.headW;
+  const c = at(H.eMid, H.u, H.v, 0, -W * 0.42);
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(angleOf(H.u));
+  const body = () => { ctx.beginPath(); ctx.ellipse(W * 0.08, -W * 0.14, W * 0.64, W * 0.3, -0.12, 0, Math.PI * 2); };
+  body();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.save();
+  body();
+  ctx.clip();
+  const g = ctx.createRadialGradient(-W * 0.1, -W * 0.3, W * 0.05, 0, -W * 0.1, W * 0.7);
+  g.addColorStop(0, 'rgba(255,255,255,0.18)');
+  g.addColorStop(1, 'rgba(0,0,0,0.3)');
+  ctx.fillStyle = g;
+  body();
+  ctx.fill();
+  ctx.restore();
+  // Head band
+  ctx.beginPath();
+  ctx.ellipse(0, W * 0.05, W * 0.48, W * 0.09, 0, 0, Math.PI * 2);
+  ctx.fillStyle = shade(color, -0.2);
+  ctx.fill();
+  // Stalk on top
+  ctx.beginPath();
+  ctx.moveTo(W * 0.12, -W * 0.42);
+  ctx.lineTo(W * 0.14, -W * 0.52);
+  ctx.strokeStyle = shade(color, -0.25);
+  ctx.lineWidth = W * 0.035;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ---------- More accessories ----------
+
+function drawBag(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const { u, v, sw, uh, vh, hw } = F;
+  const bw = sw * 0.46, bh = sw * 0.32;
+  // Bag hangs on the person's right hip, strap goes diagonally from the left shoulder
+  const bagC = at(F.hMid, uh, vh, -(hw * 0.5 + sw * 0.32), -F.torso * 0.02);
+  const strapTop = at(F.ls, u, v, -sw * 0.08, -sw * 0.02);
+  const strapEnd = at(bagC, uh, vh, bw * 0.42, -bh * 0.5);
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(strapTop.x, strapTop.y); ctx.lineTo(strapEnd.x, strapEnd.y);
+  ctx.strokeStyle = shade(color, -0.3); ctx.lineWidth = sw * 0.055; ctx.stroke();
+  ctx.strokeStyle = color; ctx.lineWidth = sw * 0.04; ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(bagC.x, bagC.y);
+  ctx.rotate(angleOf(uh));
+  roundRectPath(ctx, -bw / 2, -bh / 2, bw, bh, sw * 0.05);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = shade(color, -0.35);
+  ctx.lineWidth = Math.max(1, sw * 0.01);
+  ctx.stroke();
+  // Flap
+  ctx.save();
+  roundRectPath(ctx, -bw / 2, -bh / 2, bw, bh, sw * 0.05);
+  ctx.clip();
+  ctx.beginPath();
+  ctx.moveTo(-bw / 2, -bh / 2);
+  ctx.lineTo(bw / 2, -bh / 2);
+  ctx.lineTo(bw / 2, 0);
+  ctx.quadraticCurveTo(0, bh * 0.3, -bw / 2, 0);
+  ctx.closePath();
+  ctx.fillStyle = shade(color, -0.12);
+  ctx.fill();
+  ctx.strokeStyle = shade(color, -0.4);
+  ctx.stroke();
+  ctx.restore();
+  // Gold clasp
+  ctx.fillStyle = '#C9A45C';
+  roundRectPath(ctx, -sw * 0.035, bh * 0.06, sw * 0.07, sw * 0.05, sw * 0.012);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawNecklace(ctx, F, H, color) {
+  if (!F.hasShoulders) return;
+  const { u, v, sw } = F;
+  const a = at(F.sMid, u, v, -sw * 0.16, -sw * 0.06);
+  const b = at(F.sMid, u, v, sw * 0.16, -sw * 0.06);
+  const c = at(F.sMid, u, v, 0, sw * 0.42);
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.setLineDash([sw * 0.018, sw * 0.012]);       // chain links
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1.5, sw * 0.02);
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(c.x, c.y, b.x, b.y); ctx.stroke();
+  ctx.setLineDash([]);
+  // Pendant at the lowest point of the curve
+  const low = { x: 0.25 * a.x + 0.5 * c.x + 0.25 * b.x, y: 0.25 * a.y + 0.5 * c.y + 0.25 * b.y };
+  const p = at(low, u, v, 0, sw * 0.05);
+  ctx.beginPath(); ctx.arc(p.x, p.y, sw * 0.045, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = shade(color, -0.3);
+  ctx.lineWidth = Math.max(1, sw * 0.01);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(p.x - sw * 0.012, p.y - sw * 0.012, sw * 0.012, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBelt(ctx, F, H, color) {
+  if (!(F.hasShoulders || F.hasHipsReal)) return;
+  const { uh, vh, hw } = F;
+  const a = at(F.rh, uh, vh, -hw * 0.48, -hw * 0.36);
+  const b = at(F.lh, uh, vh, hw * 0.48, -hw * 0.36);
+  const mid = V.mid(a, b);
+  const ctl = at(mid, uh, vh, 0, hw * 0.08);
+  const strap = () => { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(ctl.x, ctl.y, b.x, b.y); };
+  ctx.save();
+  strap(); ctx.strokeStyle = shade(color, -0.35); ctx.lineWidth = hw * 0.2; ctx.stroke();
+  strap(); ctx.strokeStyle = color; ctx.lineWidth = hw * 0.17; ctx.stroke();
+  ctx.setLineDash([hw * 0.04, hw * 0.03]);
+  strap(); ctx.strokeStyle = shade(color, 0.3); ctx.lineWidth = Math.max(1, hw * 0.012); ctx.stroke();
+  ctx.setLineDash([]);
+  // Buckle
+  const bc = at(mid, uh, vh, 0, hw * 0.04);
+  ctx.translate(bc.x, bc.y);
+  ctx.rotate(angleOf(uh));
+  ctx.strokeStyle = '#C9A45C';
+  ctx.lineWidth = hw * 0.035;
+  roundRectPath(ctx, -hw * 0.12, -hw * 0.11, hw * 0.24, hw * 0.22, hw * 0.04);
+  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -hw * 0.11); ctx.lineTo(0, hw * 0.11); ctx.stroke();
+  ctx.restore();
+}
+
+// ---------- Uploaded PNG garments ----------
+
+// Recolors a PNG: grayscale -> multiply by color -> keep original alpha
+function tintedImage(item) {
+  if (!item.color) return item.img;
+  if (item._tintKey === item.color) return item._tint;
+  const src = item.img;
+  const c = item._tint || document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  const x = c.getContext('2d');
+  x.globalCompositeOperation = 'source-over';
+  x.clearRect(0, 0, c.width, c.height);
+  x.drawImage(src, 0, 0);
+  x.globalCompositeOperation = 'saturation';
+  x.fillStyle = '#808080';
+  x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'multiply';
+  x.fillStyle = item.color;
+  x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'destination-in';
+  x.drawImage(src, 0, 0);
+  x.globalCompositeOperation = 'source-over';
+  item._tint = c;
+  item._tintKey = item.color;
+  return c;
+}
+
+function drawImageGarment(ctx, item, F, H, mirror) {
+  const img = tintedImage(item);
+  const ar = img.height / img.width;
+  let c, ang, w;
+  switch (item.cat) {
+    case 'top':
+      if (!F.hasShoulders) return;
+      w = F.sw * 1.9; ang = angleOf(F.u);
+      c = at(F.sMid, F.u, F.v, 0, (w * ar) / 2 - F.sw * 0.18);
+      break;
+    case 'bottom':
+      w = F.hw * 2.6; ang = angleOf(F.uh);
+      c = at(F.hMid, F.uh, F.vh, 0, (w * ar) / 2 - F.hw * 0.45);
+      break;
+    case 'head':
+      if (!H) return;
+      w = H.headW * 1.35; ang = angleOf(H.u);
+      c = at(H.eMid, H.u, H.v, 0, -H.headW * 0.3 - (w * ar) / 2);
+      break;
+    default: // accessories: around the neck
+      if (!F.hasShoulders) return;
+      w = F.sw; ang = angleOf(F.u);
+      c = at(F.sMid, F.u, F.v, 0, F.sw * 0.15);
+  }
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(ang);
+  if (mirror) ctx.scale(-1, 1);        // keep prints readable in the mirrored view
+  ctx.drawImage(img, -w / 2, -(w * ar) / 2, w, w * ar);
+  ctx.restore();
+}
+
+// ---------- Item placement (manual size/offset from the sliders) ----------
+
+function anchorOf(item, F, H) {
+  switch (item.cat) {
+    case 'top':    return F && F.hasShoulders ? { c: V.mid(F.sMid, F.hMid), unit: F.sw, u: F.u, v: F.v } : null;
+    case 'bottom': return F && (F.hasShoulders || F.hasHipsReal) ? { c: F.hMid, unit: F.hw * 2, u: F.uh, v: F.vh } : null;
+    case 'head':   return H ? { c: H.eMid, unit: H.headW, u: H.u, v: H.v } : null;
+    default:       return F && F.hasShoulders ? { c: F.sMid, unit: F.sw, u: F.u, v: F.v } : null;
+  }
+}
+
+function drawGarment(ctx, item, F, H, mirror) {
+  const a = anchorOf(item, F, H);
+  if (!a) return;
+  ctx.save();
+  // In the mirrored view "right" on screen is -u in source coordinates
+  const dx = mirror ? -item.dx : item.dx;
+  const p = at(a.c, a.u, a.v, dx * a.unit, item.dy * a.unit);
+  ctx.translate(p.x, p.y);
+  ctx.scale(item.scale, item.scale);
+  ctx.translate(-a.c.x, -a.c.y);
+  if (item.kind === 'image') drawImageGarment(ctx, item, F, H, mirror);
+  else item.draw(ctx, F, H, item.color);
+  ctx.restore();
+}
+
+/**
+ * Hand occlusion: redraws the real video pixels of hands (and bare forearms)
+ * on top of the clothing. The region is (hand shapes from pose landmarks)
+ * ∩ (person mask from selfie segmentation), so background never leaks in.
+ */
+const occlusionCanvas = document.createElement('canvas');
+const occlusionCtx = occlusionCanvas.getContext('2d');
+
+function drawHandOcclusion(ctx, P, F, source, maskCanvas, coversForearms) {
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  if (occlusionCanvas.width !== W || occlusionCanvas.height !== H) {
+    occlusionCanvas.width = W;
+    occlusionCanvas.height = H;
+  }
+  const o = occlusionCtx;
+  o.globalCompositeOperation = 'source-over';
+  o.clearRect(0, 0, W, H);
+  o.fillStyle = o.strokeStyle = '#fff';
+  o.lineCap = 'round';
+
+  let any = false;
+  for (const [wrist, pinky, index, elbow] of [[15, 17, 19, 13], [16, 18, 20, 14]]) {
+    if (!isVisible(P[wrist], 0.3)) continue;
+    any = true;
+    const pts = [P[wrist], P[pinky], P[index]].filter((p) => isVisible(p, 0.2));
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+    const r = Math.max(F.sw * 0.13, V.dist(P[wrist], P[index]) * 1.4);
+    o.beginPath(); o.arc(cx, cy, r, 0, Math.PI * 2); o.fill();
+    if (!coversForearms && isVisible(P[elbow], 0.3)) {
+      o.lineWidth = F.sw * 0.2;
+      o.beginPath(); o.moveTo(P[elbow].x, P[elbow].y); o.lineTo(P[wrist].x, P[wrist].y); o.stroke();
+    }
+  }
+  if (!any) return;
+  o.globalCompositeOperation = 'destination-in';
+  o.drawImage(maskCanvas, 0, 0, W, H);
+  o.globalCompositeOperation = 'source-in';
+  o.drawImage(source, 0, 0, W, H);
+  o.globalCompositeOperation = 'source-over';
+  ctx.drawImage(occlusionCanvas, 0, 0);
+}
+
+/* =============================================================================
+   5. CATALOG
+   ============================================================================= */
+
+const CATEGORIES = [
+  { id: 'top', label: 'Верх', order: 20 },
+  { id: 'bottom', label: 'Низ', order: 10 },
+  { id: 'head', label: 'Головные уборы', order: 40 },
+  { id: 'acc', label: 'Аксессуары', order: 30 }
+];
+const catLabel = (id) => CATEGORIES.find((c) => c.id === id).label;
+
+// order = drawing layer (bottoms < tops < accessories < headwear)
+const DEMO_ITEMS = [
+  // Tops
+  { id: 'tee', name: 'Футболка Essential', cat: 'top', order: 20, color: '#F4EFE6', draw: drawTee },
+  { id: 'longsleeve', name: 'Лонгслив Rib', cat: 'top', order: 19.5, color: '#6E7B8B', draw: drawLongsleeve, coversForearms: true },
+  { id: 'shirt', name: 'Рубашка Oxford', cat: 'top', order: 20.5, color: '#BFD3E6', draw: drawShirt, coversForearms: true },
+  { id: 'sweater', name: 'Свитер крупной вязки', cat: 'top', order: 21.5, color: '#D9CBB3', draw: drawSweater, coversForearms: true },
+  { id: 'hoodie', name: 'Худи Oversize', cat: 'top', order: 21, color: '#8A8680', draw: drawHoodie, coversForearms: true },
+  { id: 'jacket', name: 'Жакет Camel', cat: 'top', order: 22, color: '#A27B5C', draw: drawJacket, coversForearms: true },
+  // Bottoms
+  { id: 'pants', name: 'Брюки со стрелками', cat: 'bottom', order: 10, color: '#4A4A50', draw: drawPants },
+  { id: 'jeans', name: 'Джинсы Straight', cat: 'bottom', order: 10, color: '#3B5A7A', draw: drawJeans },
+  { id: 'shorts', name: 'Шорты-бермуды', cat: 'bottom', order: 10, color: '#B9A77A', draw: drawShorts, view: [22, 90, 78, 158] },
+  { id: 'skirt', name: 'Юбка-плиссе', cat: 'bottom', order: 11, color: '#C9B9A6', draw: drawSkirt, view: [20, 92, 80, 142] },
+  // Headwear (glasses above hats)
+  { id: 'cap', name: 'Кепка Classic', cat: 'head', order: 40, color: '#556B4F', draw: drawCap },
+  { id: 'beanie', name: 'Шапка-бини', cat: 'head', order: 40, color: '#B5473A', draw: drawBeanie },
+  { id: 'bucket', name: 'Панама Canvas', cat: 'head', order: 40, color: '#E8E2D6', draw: drawBucketHat },
+  { id: 'beret', name: 'Берет из шерсти', cat: 'head', order: 40, color: '#5B2333', draw: drawBeret },
+  { id: 'glasses', name: 'Очки Tortoise', cat: 'head', order: 41, color: '#7A4E2D', draw: drawGlasses },
+  // Accessories (belt over tops, necklace under scarf)
+  { id: 'scarf', name: 'Шарф из кашемира', cat: 'acc', order: 30, color: '#8C2F2F', draw: drawScarf },
+  { id: 'necklace', name: 'Цепочка с кулоном', cat: 'acc', order: 29, color: '#D4AF37', draw: drawNecklace },
+  { id: 'bag', name: 'Сумка через плечо', cat: 'acc', order: 31, color: '#6B4A33', draw: drawBag, view: [18, 34, 84, 120] },
+  { id: 'belt', name: 'Кожаный ремень', cat: 'acc', order: 25, color: '#5A3A26', draw: drawBelt, view: [26, 86, 74, 120] }
+].map((it) => ({ kind: 'proc', scale: 1, dx: 0, dy: 0, defaultColor: it.color, ...it }));
+
+// A synthetic standing figure (source pixels) used to render carousel thumbnails
+const FIGURE = (() => {
+  const p = Array.from({ length: 33 }, () => ({ x: 50, y: 50, v: 1 }));
+  const set = (i, x, y) => { p[i] = { x, y, v: 1 }; };
+  set(0, 50, 22); set(1, 52, 19); set(2, 54, 19); set(3, 56, 19); set(4, 48, 19); set(5, 46, 19); set(6, 44, 19);
+  set(7, 60, 21); set(8, 40, 21); set(9, 53, 28); set(10, 47, 28);
+  set(11, 68, 45); set(12, 32, 45); set(13, 74, 75); set(14, 26, 75); set(15, 76, 102); set(16, 24, 102);
+  set(17, 78, 108); set(18, 22, 108); set(19, 77, 110); set(20, 23, 110); set(21, 74, 106); set(22, 26, 106);
+  set(23, 61, 105); set(24, 39, 105); set(25, 60, 145); set(26, 40, 145); set(27, 59, 185); set(28, 41, 185);
+  return p;
+})();
+const FIGURE_BODY = computeBodyFrame(FIGURE);
+const FIGURE_HEAD = computeHeadFrame(FIGURE);
+// Region of the figure shown in each category's thumbnail: [x0, y0, x1, y1]
+const THUMB_VIEW = { top: [8, 28, 92, 120], bottom: [22, 90, 78, 196], head: [30, -6, 70, 34], acc: [24, 26, 76, 98] };
+
+class Catalog {
+  constructor({ tabsEl, listEl, uploadInput, getState, onTile, onCategory }) {
+    Object.assign(this, { tabsEl, listEl, uploadInput, getState, onTile, onCategory });
+    this.thumbs = new Map();
+    // The carousel markup was removed from the page — the catalog then stays headless
+    this.enabled = !!(tabsEl && listEl);
+    if (!this.enabled) return;
+    this.tabsEl.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-cat]');
+      if (b) this.onCategory(b.dataset.cat);
+    });
+    this.listEl.addEventListener('click', (e) => {
+      if (e.target.closest('[data-upload]')) { this.uploadInput.click(); return; }
+      const t = e.target.closest('[data-item]');
+      if (t) this.onTile(t.dataset.item);
+    });
+  }
+
+  render() {
+    if (!this.enabled) return;
+    const { items, worn, selected, cat } = this.getState();
+    this.tabsEl.innerHTML = CATEGORIES.map((c) => `
+      <button role="tab" data-cat="${c.id}" aria-selected="${c.id === cat}"
+              class="shrink-0 h-9 px-4 rounded-full text-xs whitespace-nowrap transition ${c.id === cat ? 'bg-milk text-ink' : 'bg-white/10 text-milk/80 hover:bg-white/20'}">
+        ${c.label}
+      </button>`).join('');
+
+    const list = items.filter((i) => i.cat === cat);
+    this.listEl.innerHTML = `
+      <button class="tile" data-upload aria-label="Загрузить свою вещь (PNG с прозрачным фоном)">
+        <span class="tile-thumb flex flex-col items-center justify-center gap-1 border border-dashed border-white/25" style="background:transparent">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+          <span class="text-[10px] text-milk/60">PNG</span>
+        </span>
+        <span class="tile-label block">Своя вещь</span>
+      </button>` +
+      list.map((i) => `
+      <button class="tile ${selected === i.id ? 'selected' : ''}" data-item="${i.id}" aria-pressed="${worn.has(i.id)}" title="${i.name}">
+        <span class="tile-thumb block">
+          <canvas data-thumb="${i.id}" width="168" height="168" style="width:84px;height:84px"></canvas>
+          <span class="badge absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-milk text-ink items-center justify-center">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg>
+          </span>
+        </span>
+        <span class="tile-label block">${i.name}</span>
+      </button>`).join('');
+
+    list.forEach((i) => this.drawThumb(i));
+  }
+
+  drawThumb(item) {
+    if (!this.enabled) return;
+    const canvas = this.listEl.querySelector(`[data-thumb="${item.id}"]`);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const S = canvas.width;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, S, S);
+    if (item.kind === 'image') {
+      const img = tintedImage(item);
+      const k = Math.min(S / img.width, S / img.height) * 0.86;
+      ctx.drawImage(img, (S - img.width * k) / 2, (S - img.height * k) / 2, img.width * k, img.height * k);
+      return;
+    }
+    const [x0, y0, x1, y1] = item.view || THUMB_VIEW[item.cat];
+    const k = Math.min(S / (x1 - x0), S / (y1 - y0)) * 0.92;
+    ctx.translate(S / 2, S / 2);
+    ctx.scale(k, k);
+    ctx.translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+    item.draw(ctx, FIGURE_BODY, FIGURE_HEAD, item.color);
+  }
+}
+
+/* =============================================================================
+   6. CONTROLS
+   ============================================================================= */
+
+class Controls {
+  constructor({ getState, onChange, onRemove, onDeselect }) {
+    Object.assign(this, { getState, onChange, onRemove, onDeselect });
+    this.panel = $('#adjust');
+    this.name = $('#adjName');
+    this.color = $('#adjColor');
+    this.original = $('#adjOriginal');
+    this.scale = $('#adjScale');
+    this.x = $('#adjX');
+    this.y = $('#adjY');
+
+    const item = () => this.getState().selectedItem;
+    this.scale.addEventListener('input', () => { const i = item(); if (i) { i.scale = this.scale.value / 100; this.syncOutputs(); this.onChange(i, false); } });
+    this.x.addEventListener('input', () => { const i = item(); if (i) { i.dx = this.x.value / 100; this.syncOutputs(); this.onChange(i, false); } });
+    this.y.addEventListener('input', () => { const i = item(); if (i) { i.dy = -this.y.value / 100; this.syncOutputs(); this.onChange(i, false); } });
+    this.color.addEventListener('input', () => { const i = item(); if (i) { i.color = this.color.value; this.onChange(i, true); } });
+    this.original.addEventListener('click', () => { const i = item(); if (i) { i.color = null; this.onChange(i, true); } });
+    $('#adjReset').addEventListener('click', () => {
+      const i = item();
+      if (!i) return;
+      Object.assign(i, { scale: 1, dx: 0, dy: 0, color: i.defaultColor });
+      this.sync();
+      this.onChange(i, true);
+    });
+    $('#adjRemove').addEventListener('click', () => { const i = item(); if (i) this.onRemove(i); });
+    $('#adjClose').addEventListener('click', () => this.onDeselect());
+  }
+
+  syncOutputs() {
+    $('#outScale').textContent = `${this.scale.value}%`;
+    $('#outX').textContent = this.x.value;
+    $('#outY').textContent = this.y.value;
+  }
+
+  sync() {
+    const i = this.getState().selectedItem;
+    this.panel.classList.toggle('hidden', !i);
+    if (!i) return;
+    this.name.textContent = i.name;
+    this.scale.value = Math.round(i.scale * 100);
+    this.x.value = Math.round(i.dx * 100);
+    this.y.value = Math.round(-i.dy * 100);
+    this.color.value = i.color || '#ffffff';
+    this.original.classList.toggle('hidden', i.kind !== 'image');
+    this.syncOutputs();
+  }
+}
+
+/* =============================================================================
+   7. APP
+   ============================================================================= */
+
+const video = $('#video');
+const stage = $('#stage');
+const ctx = stage.getContext('2d');
+const camera = new CameraView(video);
+const tracker = new PoseTracker();
+
+const state = {
+  items: [...DEMO_ITEMS],
+  worn: new Set(),
+  selected: null,
+  cat: 'top',
+  uploads: 0,
+  mode: 'idle',            // 'idle' | 'camera' | 'photo'
+  mirror: true,
+  photo: null,             // canvas with the user's photo (photo mode)
+  get selectedItem() {
+    return this.selected && this.worn.has(this.selected) ? this.items.find((i) => i.id === this.selected) : null;
+  }
+};
+
+const byId = (id) => state.items.find((i) => i.id === id);
+const wornItems = () => [...state.worn].map(byId).filter(Boolean).sort((a, b) => a.order - b.order);
+
+// ---------- Toast & hint ----------
+let toastTimer;
+function toast(text, ms = 2400) {
+  const t = $('#toast');
+  t.textContent = text;
+  t.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.style.opacity = '0'), ms);
+}
+
+let hintText = '';
+function setHint(text) {
+  if (text === hintText) return;
+  hintText = text;
+  const h = $('#hint');
+  h.textContent = text;
+  h.classList.toggle('hidden', !text);
+}
+
+function poseHint(F, H, items) {
+  if (state.mode === 'idle' || !tracker.pose) return '';
+  if (state.mode === 'photo' && !tracker.points) return 'На фото не найден человек — нужен снимок в полный рост или по пояс';
+  if (!items.length) return '';
+  const needsBody = items.some((i) => i.cat !== 'head');
+  const needsHead = items.some((i) => i.cat === 'head');
+  if (needsBody && (!F || !F.hasShoulders)) {
+    if (!(F && F.hasHipsReal && items.every((i) => i.cat === 'bottom' || i.cat === 'head'))) {
+      return 'Встаньте так, чтобы были видны плечи и талия';
+    }
+  }
+  if (items.some((i) => i.cat === 'bottom') && F && !F.hasKnees) return 'Отойдите дальше, чтобы были видны ноги';
+  if (items.some((i) => i.cat === 'top') && F && F.hasShoulders && !F.hasHipsReal) return 'Отойдите чуть дальше — не видно талию';
+  if (needsHead && !H) return 'Повернитесь лицом к камере';
+  return '';
+}
+
+// ---------- Rendering ----------
+function renderFrame() {
+  const source = state.mode === 'photo' ? state.photo : video;
+  const W = stage.width, H = stage.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (state.mirror) ctx.setTransform(-1, 0, 0, 1, W, 0);   // selfie view
+  ctx.drawImage(source, 0, 0, W, H);
+
+  const P = tracker.points;
+  const F = computeBodyFrame(P);
+  const Hd = computeHeadFrame(P);
+  const items = wornItems();
+  if (F || Hd) {
+    for (const item of items) drawGarment(ctx, item, F || {}, Hd, state.mirror);
+    if (F && F.hasShoulders && tracker.maskReady && items.some((i) => i.cat !== 'head')) {
+      drawHandOcclusion(ctx, P, F, source, tracker.maskCanvas, items.some((i) => i.coversForearms));
+    }
+  }
+  ctx.restore();
+  setHint(poseHint(F, Hd, items));
+}
+
+let renderQueued = false;
+function requestRender() {
+  if (state.mode !== 'photo' || renderQueued) return;   // camera mode re-renders every frame
+  renderQueued = true;
+  requestAnimationFrame(() => { renderQueued = false; renderFrame(); });
+}
+
+// ---------- Camera loop with FPS counter ----------
+let rafId = 0, fpsFrames = 0, fpsStart = 0;
+function loop(now) {
+  if (state.mode !== 'camera') return;
+  if (video.readyState >= 2) {
+    const needMask = state.worn.size > 0 && wornItems().some((i) => i.cat !== 'head');
+    // Without the pose model every animation frame simply redraws the camera image
+    const fresh = tracker.pose ? tracker.update(video, now, needMask) : true;
+    if (fresh) {
+      renderFrame();
+      fpsFrames++;
+      if (now - fpsStart >= 500) {
+        $('#fps').textContent = `${Math.round((fpsFrames * 1000) / (now - fpsStart))} FPS`;
+        fpsFrames = 0;
+        fpsStart = now;
+      }
+    }
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+// ---------- Start / error UI ----------
+function setLoading(on, text = '') {
+  $('#startBtn').disabled = on;
+  $('#startSpinner').classList.toggle('hidden', !on);
+  $('#startLabel').textContent = on ? 'Загрузка…' : 'Включить камеру';
+  $('#startStatus').textContent = text;
+}
+
+function showError(title, text) {
+  setLoading(false);
+  $('#errorTitle').textContent = title;
+  $('#errorText').textContent = text;
+  const box = $('#errorBox');
+  box.classList.remove('hidden');
+  box.classList.add('flex');
+}
+
+function hideError() {
+  const box = $('#errorBox');
+  box.classList.add('hidden');
+  box.classList.remove('flex');
+}
+
+function enterRunningUI() {
+  $('#startScreen').classList.add('hidden');
+  $('#photoBtn').disabled = false;
+  $('#switchBtn').disabled = false;
+  $('#switchLabel').textContent = state.mode === 'camera' ? 'Камера' : 'Включить';
+  $('#fps').classList.toggle('hidden', state.mode !== 'camera');
+  $('#fps').classList.toggle('flex', state.mode === 'camera');
+}
+
+// Pose/segmentation models are only needed when clothing can be selected.
+// With the catalog removed from the page they are not downloaded at all.
+async function ensureModels() {
+  if (!catalog.enabled) return;
+  if (!tracker.pose) await tracker.init((t) => ($('#startStatus').textContent = t));
+}
+
+async function startCamera(facing = 'user') {
+  hideError();
+  const unsupported = CameraView.checkSupport();
+  if (unsupported) return showError(unsupported.title, unsupported.text);
+
+  setLoading(true, 'Запрашиваем доступ к камере…');
+  try {
+    await camera.start(facing);
+  } catch (err) {
+    return showError('Камера недоступна', CameraView.errorMessage(err));
+  }
+  try {
+    await ensureModels();
+    if (tracker.pose) await tracker.useVideoMode();
+  } catch (err) {
+    console.error(err);
+    camera.stop();
+    return showError('Не удалось загрузить модель', 'Модель распознавания позы не загрузилась. Проверьте подключение к интернету и попробуйте снова.');
+  }
+  stage.width = video.videoWidth;
+  stage.height = video.videoHeight;
+  state.mode = 'camera';
+  state.mirror = camera.mirror;
+  setLoading(false);
+  enterRunningUI();
+  cancelAnimationFrame(rafId);
+  fpsFrames = 0;
+  fpsStart = performance.now();
+  rafId = requestAnimationFrame(loop);
+}
+
+async function startPhotoMode(file) {
+  hideError();
+  setLoading(true, 'Открываем фото…');
+  let photo;
+  try {
+    photo = await loadImageToCanvas(file, 1280);
+  } catch {
+    setLoading(false);
+    return toast('Не удалось открыть это изображение');
+  }
+  try {
+    await ensureModels();
+    cancelAnimationFrame(rafId);
+    camera.stop();
+    if (tracker.pose) await tracker.detectStill(photo);
+  } catch (err) {
+    console.error(err);
+    return showError('Не удалось загрузить модель', 'Модель распознавания позы не загрузилась. Проверьте подключение к интернету и попробуйте снова.');
+  }
+  state.mode = 'photo';
+  state.mirror = false;
+  state.photo = photo;
+  stage.width = photo.width;
+  stage.height = photo.height;
+  setLoading(false);
+  enterRunningUI();
+  renderFrame();
+  // The segmentation callback may arrive asynchronously — render again with the mask
+  setTimeout(renderFrame, 50);
+}
+
+// ---------- Wear / select logic ----------
+let toggleHintShown = false;
+function onTile(id) {
+  if (!state.worn.has(id)) {
+    state.worn.add(id);
+    state.selected = id;
+    if (!toggleHintShown && state.mode !== 'idle') { toggleHintShown = true; toast('Нажмите на вещь ещё раз, чтобы снять её'); }
+  } else if (state.selected !== id) {
+    state.selected = id;
+  } else {
+    state.worn.delete(id);
+    state.selected = null;
+  }
+  catalog.render();
+  controls.sync();
+  requestRender();
+}
+
+const catalog = new Catalog({
+  tabsEl: $('#catTabs'),
+  listEl: $('#carousel'),
+  uploadInput: $('#uploadInput'),
+  getState: () => state,
+  onTile,
+  onCategory: (cat) => { state.cat = cat; catalog.render(); }
+});
+
+const controls = new Controls({
+  getState: () => state,
+  onChange: (item, recolored) => {
+    if (recolored) { catalog.drawThumb(item); controls.sync(); }
+    requestRender();
+  },
+  onRemove: (item) => { state.worn.delete(item.id); state.selected = null; catalog.render(); controls.sync(); requestRender(); },
+  onDeselect: () => { state.selected = null; catalog.render(); controls.sync(); }
+});
+
+// ---------- Upload your own garment ----------
+// Upload limits: only PNG/WebP up to 10 MB (protects against huge files freezing the tab)
+const MAX_GARMENT_BYTES = 10 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
+
+$('#uploadInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!/^image\/(png|webp)$/.test(file.type)) return toast('Нужен файл PNG или WebP с прозрачным фоном');
+  if (file.size > MAX_GARMENT_BYTES) return toast('Файл больше 10 МБ — уменьшите изображение');
+  let img;
+  try { img = await loadImageToCanvas(file, 1024); }
+  catch { return toast('Не удалось открыть файл — нужен PNG с прозрачным фоном'); }
+
+  state.uploads += 1;
+  const cat = CATEGORIES.find((c) => c.id === state.cat);
+  const item = {
+    id: `upload-${state.uploads}`,
+    name: `Своя вещь ${state.uploads}`,
+    cat: cat.id,
+    order: cat.order + 5 + state.uploads / 100,
+    kind: 'image',
+    img,
+    color: null,
+    defaultColor: null,
+    scale: 1, dx: 0, dy: 0
+  };
+  state.items.push(item);
+  state.worn.add(item.id);
+  state.selected = item.id;
+  catalog.render();
+  controls.sync();
+  requestRender();
+  toast(hasTransparency(img)
+    ? `Вещь добавлена в «${cat.label}» — подгоните её ползунками`
+    : 'У картинки нет прозрачного фона — она будет выглядеть как прямоугольник', 3200);
+});
+
+// ---------- Actions ----------
+$('#startBtn').addEventListener('click', () => startCamera('user'));
+$('#errorRetry').addEventListener('click', () => startCamera(camera.facing));
+$('#photoModeBtn').addEventListener('click', () => $('#photoInput').click());
+$('#errorPhoto').addEventListener('click', () => $('#photoInput').click());
+$('#photoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp|gif|avif)$/.test(file.type)) return toast('Поддерживаются фото JPG, PNG, WebP');
+  if (file.size > MAX_PHOTO_BYTES) return toast('Фото больше 15 МБ — выберите файл поменьше');
+  startPhotoMode(file);
+});
+
+$('#switchBtn').addEventListener('click', async () => {
+  if (state.mode !== 'camera') return startCamera('user');
+  if (!(await camera.hasMultipleCameras())) return toast('Вторая камера не найдена');
+  const next = camera.facing === 'user' ? 'environment' : 'user';
+  try {
+    await camera.start(next);
+  } catch {
+    toast('Не удалось переключить камеру');
+    try { await camera.start(camera.facing); } catch (err) { return showError('Камера недоступна', CameraView.errorMessage(err)); }
+  }
+  stage.width = video.videoWidth;
+  stage.height = video.videoHeight;
+  state.mirror = camera.mirror;
+  tracker.resetSmoothing();
+});
+
+$('#photoBtn').addEventListener('click', () => {
+  stage.toBlob((blob) => {
+    if (!blob) return toast('Не удалось сохранить фото');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `monte-primerka-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Фото сохранено');
+  }, 'image/png');
+  const flash = $('#flash');
+  flash.classList.remove('go');
+  void flash.offsetWidth;   // restart the animation
+  flash.classList.add('go');
+});
+
+window.addEventListener('pagehide', () => camera.stop());
+
+// Initial UI
+catalog.render();
+controls.sync();
+</script>
+</body>
+</html>
