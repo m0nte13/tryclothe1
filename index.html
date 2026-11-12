@@ -3,28 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <!-- Безопасность: разрешаем загрузку только из перечисленных источников (см. SECURITY.md) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; manifest-src 'self'; script-src 'self' file: 'unsafe-inline' https://cdn.tailwindcss.com/3.4.17; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com; connect-src 'self'; worker-src 'self'; form-action 'self'; base-uri 'none'; object-src 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file: 'unsafe-inline' https://cdn.tailwindcss.com/3.4.17; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com; connect-src 'self'; form-action 'self'; base-uri 'none'; object-src 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>MONTE — Quiet Essentials</title>
-  <meta name="description" content="MONTE — бренд одежды в эстетике quiet luxury. Базовые вещи из натуральных тканей." />
-
-
-  <!-- Приложение для iPhone (PWA): значок, запуск без адресной строки -->
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" href="icons/icon-192.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="MONTE" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="theme-color" content="#FAF8F4" />
-  <meta name="format-detection" content="telephone=no" />
-  <style>
-    html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
-    body { padding-bottom: env(safe-area-inset-bottom); overscroll-behavior-y: none; }
-    @media (display-mode: standalone) { body { -webkit-touch-callout: none; } input, textarea { -webkit-touch-callout: default; } }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MONTE — Весна — Лето 2027</title>
+  <meta name="description" content="MONTE — молодёжный бренд одежды. Базовые вещи на каждый день: коллекция Весна — Лето 2027." />
 
   <!-- Шрифты -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -34,7 +17,6 @@
   <!-- Tailwind CSS -->
   <!-- Локальная копия Tailwind Play CDN 3.4.17 (без зависимости от чужого сервера) -->
   <script src="vendor/tailwindcss-3.4.17.js"></script>
-  <script src="pwa.js" defer></script>
   <!-- Запасной вариант: если папку vendor не загрузили на хостинг, берём ту же версию с официального CDN -->
   <script>window.tailwind || document.write('<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>')</script>
   <script>
@@ -62,6 +44,12 @@
 
   <style>
     html { scroll-behavior: smooth; }
+    /* Отступы под вырезы iPhone / Android */
+    body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+    #header { padding-top: env(safe-area-inset-top); }
+    @supports (padding: max(0px)) {
+      #header { padding-top: max(0px, env(safe-area-inset-top)); }
+    }
     body { -webkit-font-smoothing: antialiased; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -244,6 +232,225 @@
       }
     }
 
+
+
+    /* =====================================================================
+       ПРЕДЗАГРУЗОЧНЫЙ ЭКРАН
+       Фото коллекции проявляется из размытия по мере загрузки, за ним бегут контурные слова,
+       по центру вращается логотип MONTE, меняются слова-стили и статус, тикают часы, плавают
+       стикеры. Когда всё готово, шторка с изогнутым краем уезжает вверх.
+       --p (0…1) — прогресс загрузки, выставляется из JS.
+       ===================================================================== */
+    html.is-loading, html.is-loading body { overflow: hidden; }
+    html.is-loading .fade-in { animation-play-state: paused; }
+    #preloader {
+      --p: 0;
+      position: fixed; inset: 0; z-index: 9999; background: #111111; color: #F4EFE6; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 1s cubic-bezier(.76,0,.2,1), border-radius 1s cubic-bezier(.76,0,.2,1);
+      will-change: transform;
+      animation: pl-failsafe 0s linear 8s forwards;   /* если JS не сработал — уйдёт сам */
+    }
+    @keyframes pl-failsafe { to { visibility: hidden; opacity: 0; } }
+    #preloader.is-done { transform: translateY(-101%); border-radius: 0 0 50% 50% / 0 0 18vh 18vh; pointer-events: none; }
+    #preloader.is-gone { display: none; }
+    #preloader > * { position: absolute; }
+
+    /* фон: фото проявляется (из размытия и крупного плана) */
+    .pl-bg { inset: -4%; background: url(assets/hero-youth.jpg) center / cover no-repeat;
+      filter: grayscale(1) contrast(1.05) blur(calc((1 - var(--p)) * 18px));
+      transform: scale(calc(1.2 - var(--p) * .16)); opacity: calc(.12 + var(--p) * .38); }
+    .pl-vignette { inset: 0; background: radial-gradient(ellipse at center, rgba(17,17,17,.15) 0%, rgba(17,17,17,.75) 70%, #111 100%); }
+    .pl-grain { inset: -50%; opacity: .07; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+      animation: pl-grain .6s steps(4) infinite; }
+    @keyframes pl-grain { 0% { transform: translate(0,0); } 25% { transform: translate(-3%,2%); } 50% { transform: translate(2%,-3%); } 75% { transform: translate(-2%,-1%); } 100% { transform: translate(0,0); } }
+
+    /* бегущие контурные слова */
+    .pl-marq { left: 0; width: max-content; white-space: nowrap; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(4rem, 17vw, 11rem); line-height: 1; color: transparent; -webkit-text-stroke: 1px rgba(244,239,230,.22);
+      animation: pl-marq 22s linear infinite; pointer-events: none; }
+    .pl-marq.a { top: 6%; }
+    .pl-marq.b { bottom: 8%; animation-direction: reverse; animation-duration: 28s; -webkit-text-stroke-color: rgba(244,239,230,.16); font-style: italic; }
+    @keyframes pl-marq { to { transform: translateX(-50%); } }
+
+    /* логотип: сначала выезд из маски, потом вращение букв — как в шапке */
+    .pl-logo { position: relative; display: flex; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500;
+      font-size: clamp(3rem, 14vw, 8rem); letter-spacing: .2em; margin-right: -.2em; line-height: 1.1; perspective: 700px; }
+    .pl-logo span { display: block; overflow: hidden; padding: 0 .02em; }
+    .pl-logo span > i { display: block; font-style: normal; transform: translateY(115%);
+      animation: pl-rise .9s cubic-bezier(.2,.8,.2,1) forwards; animation-delay: calc(var(--k) * .09s + .1s); }
+    @keyframes pl-rise { to { transform: none; } }
+    .pl-logo.spin span { overflow: visible; }
+    .pl-logo.spin span > i { transform: none; animation: pl-flip 3.2s linear infinite; animation-delay: calc(var(--k) * -.18s); transform-style: preserve-3d; }
+    @keyframes pl-flip { from { transform: rotateY(0); } to { transform: rotateY(360deg); } }
+
+    /* слово-стиль под логотипом */
+    .pl-word { top: calc(50% + clamp(2.6rem, 9vw, 5.6rem)); left: 0; right: 0; text-align: center; height: 1.6em; overflow: hidden;
+      font-size: 12px; letter-spacing: .38em; text-transform: uppercase; color: rgba(244,239,230,.8); }
+    .pl-word b { display: block; font-weight: 400; animation: pl-word .55s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes pl-word { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* верхняя и нижняя служебные строки */
+    .pl-top { top: clamp(1rem, 3.5vh, 2rem); left: clamp(1rem, 4vw, 3rem); right: clamp(1rem, 4vw, 3rem);
+      display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; white-space: nowrap; gap: .8em;
+      color: rgba(244,239,230,.88); font-variant-numeric: tabular-nums; }
+    .pl-top .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #C8102E; margin-right: .6em; vertical-align: .05em;
+      animation: pl-blink 1.2s ease-in-out infinite; }
+    @keyframes pl-blink { 50% { opacity: .2; } }
+    .pl-status { left: clamp(1rem, 4vw, 3rem); bottom: clamp(1.6rem, 5.4vh, 3.2rem); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: rgba(244,239,230,.7); max-width: 55%; }
+    .pl-count { right: clamp(1rem, 4vw, 3rem); bottom: clamp(1.4rem, 5vh, 3rem);
+      font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2.6rem, 8vw, 5rem); line-height: 1; font-variant-numeric: tabular-nums; }
+    .pl-count small { font-size: .38em; opacity: .55; margin-left: .15em; }
+    .pl-line { left: 0; bottom: 0; height: 2px; width: 100%; background: rgba(244,239,230,.14); }
+    .pl-line > b { display: block; height: 100%; background: #F4EFE6; transform-origin: left; transform: scaleX(0); }
+
+    /* плавающие стикеры */
+    .pl-tag { padding: .5em 1em; border-radius: 9999px; border: 1px solid rgba(244,239,230,.5); background: rgba(17,17,17,.35);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); font-size: 10px; letter-spacing: .24em; text-transform: uppercase; white-space: nowrap;
+      opacity: 0; animation: pl-tag-in .6s ease forwards, pl-float 5s ease-in-out infinite; animation-delay: var(--d, 1s), var(--d, 1s); }
+    .pl-tag.t1 { top: 24%; left: 8%;  --r: -8deg; --d: .9s; }
+    .pl-tag.t2 { top: 30%; right: 7%; --r: 6deg;  --d: 1.2s; background: #F4EFE6; color: #111; border-color: #F4EFE6; }
+    .pl-tag.t3 { bottom: 26%; left: 12%; --r: 5deg; --d: 1.5s; }
+    .pl-tag.t4 { bottom: 30%; right: 9%; --r: -6deg; --d: 1.8s; border-color: #C8102E; color: #fff; background: #C8102E; }
+    @keyframes pl-tag-in { to { opacity: 1; } }
+    @keyframes pl-float { 0%,100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-12px) rotate(calc(var(--r, 0deg) * -.5)); } }
+    @media (max-width: 520px) { .pl-tag.t3, .pl-tag.t4 { display: none; } .pl-tag.t1 { top: 20%; } .pl-tag.t2 { top: 27%; } }
+    @media (max-width: 380px) { .pl-top { letter-spacing: .16em; font-size: 9.5px; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      #preloader { transition: opacity .4s ease; }
+      #preloader.is-done { transform: none; opacity: 0; border-radius: 0; }
+      .pl-marq, .pl-grain, .pl-tag, .pl-top .dot { animation: none; }
+      .pl-tag { opacity: 1; }
+      .pl-logo span > i { animation: none; transform: none; }
+    }
+
+    /* Заглушка, если фото не загрузилось */
+    .photo-ph {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: 1rem;
+      color: #8a8378; pointer-events: none;
+    }
+    .photo-ph span { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; letter-spacing: .25em; }
+    .photo-ph small { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+
+
+    /* Таблица размеров: высота считается по реально видимой области (dvh), иначе на телефоне
+       верх шторки уезжает под адресную строку и крестик не виден */
+    .sg-sheet { max-height: 88vh; max-height: calc(100dvh - 16px); overscroll-behavior: contain; }
+    @media (min-width: 640px) { .sg-sheet { max-height: 88vh; max-height: min(88dvh, 760px); } }
+    .sg-x {
+      position: absolute; top: 10px; right: 10px; z-index: 30;
+      width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+      color: #111; background: transparent; border: 0; cursor: pointer; border-radius: 9999px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sg-x.on-photo { background: rgba(250,248,244,.92); box-shadow: 0 2px 10px rgba(17,17,17,.18); }
+    .modal-sheet { max-height: 92vh; max-height: calc(100dvh - 16px); overscroll-behavior: contain; }
+    @media (min-width: 640px) { .modal-sheet { max-height: 92vh; max-height: calc(100dvh - 48px); } .sg-x.on-photo { top: 14px; right: 14px; } }
+    .sg-x:hover { background: rgba(17,17,17,.06); }
+    .sg-x:active { background: rgba(17,17,17,.12); }
+
+    /* ---------- Поиск: строка прилипает под вкладками, сжимается в каплю и «улетает» вверх в значок ---------- */
+    #catalogSearch { position: sticky; top: var(--search-top, 6.6rem); z-index: 29; isolation: isolate; }
+    #catalogSearch::before {
+      content: ''; position: absolute; inset: 0; z-index: -1;
+      background: rgba(250, 248, 244, .96);
+      border-top: 1px solid rgba(17,17,17,.08); border-bottom: 1px solid rgba(17,17,17,.08);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      transition: opacity .3s ease .1s;
+    }
+    .search-pill {
+      width: 100%; margin-left: auto; overflow: hidden;
+      transition: width .5s cubic-bezier(.65,0,.3,1), padding .5s cubic-bezier(.65,0,.3,1), gap .5s, border-color .2s;
+      will-change: transform, width;
+    }
+    .search-pill-icon { transition: color .3s; }
+    .search-pill-input, #searchClear { transition: opacity .2s ease, flex-basis .5s cubic-bezier(.65,0,.3,1); }
+
+    /* 1) пилюля стягивается в круг, 2) капля чуть «приседает» и тянется вверх, 3) вливается в значок */
+    #catalogSearch.is-dropped { pointer-events: none; }
+    #catalogSearch.is-dropped::before { opacity: 0; transition-delay: 0s; }
+    #catalogSearch.is-dropped .search-pill {
+      width: 48px; padding-left: 0; padding-right: 0; gap: 0; justify-content: center;
+      animation: search-drop-up .8s cubic-bezier(.5,0,.25,1) .42s both;
+    }
+    #catalogSearch.is-dropped .search-pill-input,
+    #catalogSearch.is-dropped #searchClear { opacity: 0; flex: 0 0 0; width: 0; }
+    #catalogSearch.is-dropped .search-pill-icon { color: #111; }
+    #catalogSearch.is-returning .search-pill { animation: search-drop-down .7s cubic-bezier(.3,0,.2,1) both; transition-delay: .3s; }
+    #catalogSearch.is-returning::before { transition-delay: .3s; }
+
+    @keyframes search-drop-up {
+      0%   { transform: translate(0, 0) scale(1, 1);   opacity: 1; border-radius: 9999px; }
+      22%  { transform: translate(0, 5px) scale(1.07, .9); opacity: 1; }
+      68%  { transform: translate(calc(var(--drop-x, 0px) * .6), calc(var(--drop-y, -60px) * .7)) scale(.82, 1.22); opacity: 1;
+             border-radius: 50% 50% 50% 50% / 36% 36% 64% 64%; }
+      100% { transform: translate(var(--drop-x, 0px), var(--drop-y, -60px)) scale(.3, .45); opacity: 0;
+             border-radius: 50% 50% 50% 50% / 36% 36% 64% 64%; }
+    }
+    @keyframes search-drop-down {
+      0%   { transform: translate(var(--drop-x, 0px), var(--drop-y, -60px)) scale(.3, .45); opacity: 0; }
+      35%  { opacity: 1; }
+      70%  { transform: translate(0, 4px) scale(1.06, .92); }
+      100% { transform: translate(0, 0) scale(1, 1); opacity: 1; }
+    }
+
+    /* Значок в категориях появляется, когда капля в него «попала» */
+    .search-trigger {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transform: scale(.4);
+      transition: opacity .15s ease, transform .15s ease, visibility 0s linear .15s;
+      flex-shrink: 0;
+    }
+    .search-trigger.is-visible {
+      opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1);
+      transition: opacity .25s ease .95s, transform .55s cubic-bezier(.34,1.7,.5,1) .95s, visibility 0s linear .95s;
+    }
+    /* Значок всегда прижат к правому краю видимой части вкладок, даже если вкладки прокручены */
+    .search-trigger { position: sticky; right: 0; z-index: 2; padding: .5rem .25rem .5rem 1.75rem; margin-right: -.25rem;
+      background: linear-gradient(to left, rgba(250,248,244,1) 62%, rgba(250,248,244,0)); }
+    @media (prefers-reduced-motion: reduce) {
+      #catalogSearch.is-dropped .search-pill, #catalogSearch.is-returning .search-pill { animation: none; }
+      #catalogSearch.is-dropped .search-pill { opacity: 0; }
+      .search-pill, .search-trigger, .search-trigger.is-visible { transition: none; }
+    }
+    /* Липкие вкладки категорий под шапкой (header h-16 = 4rem) */
+    #tabs {
+      position: sticky;
+      top: 4rem;
+      z-index: 30;
+      background: rgba(250, 248, 244, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding-top: 0.65rem;
+      padding-bottom: 0.65rem;
+      margin-left: -1rem;
+      margin-right: -1rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      border-bottom: 1px solid transparent;
+      transition: border-color .25s ease, box-shadow .25s ease;
+      /* чтобы горизонтальный скролл вкладок не ломал sticky на iOS */
+      -webkit-overflow-scrolling: touch;
+    }
+    #tabs.is-stuck {
+      border-bottom-color: rgba(17, 17, 17, 0.1);
+      box-shadow: 0 8px 20px -12px rgba(17, 17, 17, 0.14);
+    }
+    @media (min-width: 640px) {
+      #tabs {
+        margin-left: -1.5rem;
+        margin-right: -1.5rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+      }
+    }
+    /* На очень узких экранах чуть компактнее */
+    @media (max-width: 380px) {
+      #tabs { gap: 0.85rem; font-size: 11px; }
+    }
     @media (prefers-reduced-motion: reduce) {
       .reveal, .reveal-mask, .reveal-mask img, .split-line > span { opacity: 1 !important; transform: none !important; clip-path: none !important; transition: none !important; }
       .fade-in { animation: none; }
@@ -252,6 +459,29 @@
 </head>
 
 <body class="bg-cream text-ink font-sans">
+  <!-- Предзагрузочный экран -->
+  <div id="preloader" role="status" aria-live="polite" aria-label="Загрузка сайта">
+    <div class="pl-bg" aria-hidden="true"></div>
+    <div class="pl-vignette" aria-hidden="true"></div>
+    <div class="pl-grain" aria-hidden="true"></div>
+    <div class="pl-marq a" aria-hidden="true">Street · Oversize · Denim · Sneakers · Hoodie · Street · Oversize · Denim · Sneakers · Hoodie ·&nbsp;</div>
+    <div class="pl-marq b" aria-hidden="true">Весна · Лето · 2027 · Весна · Лето · 2027 · Весна · Лето · 2027 · Весна · Лето · 2027 ·&nbsp;</div>
+    <div class="pl-top" aria-hidden="true"><span><i class="dot"></i>MONTE — SS 2027</span><span id="plClock">Москва 00:00:00</span></div>
+    <div class="pl-tag t1" aria-hidden="true">New Drop</div>
+    <div class="pl-tag t2" aria-hidden="true">SS 2027</div>
+    <div class="pl-tag t3" aria-hidden="true">Street Style</div>
+    <div class="pl-tag t4" aria-hidden="true">Sale</div>
+    <div class="pl-logo" id="plLogo" aria-hidden="true">
+      <span><i style="--k:0">M</i></span><span><i style="--k:1">O</i></span><span><i style="--k:2">N</i></span><span><i style="--k:3">T</i></span><span><i style="--k:4">E</i></span>
+    </div>
+    <div class="pl-word" aria-hidden="true"><b id="plWord">Street</b></div>
+    <div class="pl-status" id="plStatus" aria-hidden="true">Собираем образы</div>
+    <div class="pl-count" aria-hidden="true"><span id="plNum">0</span><small>%</small></div>
+    <div class="pl-line" aria-hidden="true"><b id="plBar"></b></div>
+  </div>
+  <noscript><style>#preloader{display:none!important}html.is-loading,html.is-loading body{overflow:auto!important}</style></noscript>
+  <script>document.documentElement.classList.add('is-loading');</script>
+
   <div id="scrollProgress" aria-hidden="true"></div>
 
   <!-- ===================== ANNOUNCEMENT BAR ===================== -->
@@ -285,14 +515,11 @@
         </a>
       </nav>
 
-      <!-- Поиск и корзина -->
+      <!-- Корзина (поиск перенесён в категории) -->
       <div class="col-start-3 flex justify-end items-center gap-1 sm:gap-3">
         <a href="tryon.html" class="lg:hidden p-2" aria-label="Виртуальная примерка через камеру">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8.5A2.5 2.5 0 015.5 6h1.6l1.4-2h7l1.4 2h1.6A2.5 2.5 0 0121 8.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5v-9z"/><circle cx="12" cy="13" r="3.6"/></svg>
         </a>
-        <button id="searchBtn" class="p-2" aria-label="Поиск">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        </button>
         <button id="cartBtn" class="relative p-2" aria-label="Корзина">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8h14l-1.2 12H6.2L5 8z"/><path d="M9 8V6a3 3 0 016 0v2"/></svg>
           <span id="cartCount" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-ink text-milk text-[10px] leading-[18px] text-center hidden">0</span>
@@ -300,14 +527,6 @@
       </div>
     </div>
 
-    <!-- Поисковая строка -->
-    <div id="searchBar" class="hidden border-t border-line bg-cream">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-stone shrink-0"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <input id="searchInput" type="search" maxlength="60" placeholder="Поиск: пальто, кашемир, футболка…" class="w-full bg-transparent outline-none text-base placeholder:text-stone" />
-        <button id="searchClose" class="text-xs uppercase tracking-widest text-stone hover:text-ink">Закрыть</button>
-      </div>
-    </div>
   </header>
 
   <!-- Мобильное меню -->
@@ -337,19 +556,19 @@
     <!-- ===================== HERO ===================== -->
     <section class="relative h-[88vh] min-h-[560px] overflow-hidden img-fallback">
       <img id="heroImg"
-        src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=2000&q=80"
-        alt="Коллекция MONTE на вешалках"
+        src="assets/hero-youth.jpg"
+        alt="Манекены в солнцезащитных очках и соломенной шляпе — летняя коллекция MONTE"
         class="absolute inset-0 w-full h-full object-cover object-center"
-        onerror="this.style.display='none'" />
+        />
       <div class="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/20 to-transparent"></div>
 
       <div id="heroContent" class="relative h-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col justify-end pb-16 sm:pb-24 text-milk">
-        <p class="text-[11px] sm:text-xs uppercase tracking-widest2 mb-4 fade-in">Коллекция Осень — Зима 2026</p>
+        <p class="text-[11px] sm:text-xs uppercase tracking-widest2 mb-4 fade-in">Коллекция Весна — Лето 2027</p>
         <h1 class="font-serif text-5xl sm:text-7xl lg:text-8xl leading-[0.95] max-w-3xl fade-in">
-          Тишина —<br /><em class="font-normal">новая роскошь</em>
+          Лето — это<br /><em class="font-normal">твой стиль</em>
         </h1>
         <p class="mt-6 max-w-md text-sm sm:text-base text-milk/80 fade-in">
-          Вещи, которые не кричат. Кашемир, шерсть и хлопок, созданные служить годами.
+          Лёгкие футболки, широкие джинсы и кеды на каждый день. Собирай свой образ — без правил.
         </p>
         <div class="mt-8 flex flex-wrap gap-3 fade-in">
           <a href="#catalog" class="rounded-full bg-milk text-ink px-8 py-4 text-xs uppercase tracking-[0.2em] hover:bg-white transition">Смотреть каталог</a>
@@ -371,34 +590,45 @@
     <!-- ===================== БЕГУЩАЯ СТРОКА (scroll-driven) ===================== -->
     <section class="marquee-wrap py-10 sm:py-16 border-b border-line select-none" aria-hidden="true">
       <div class="marquee font-serif italic text-[16vw] sm:text-[11vw] leading-[1.05] whitespace-nowrap">
-        Quiet Essentials · Осень — Зима 2026 · Quiet Essentials ·
+        Street Style · Весна — Лето 2027 · Street Style · Лето 2027 ·
       </div>
       <div class="marquee rev font-serif text-[16vw] sm:text-[11vw] leading-[1.05] whitespace-nowrap text-transparent" style="-webkit-text-stroke: 1px #111;">
-        Кашемир · Шерсть · Хлопок · Кашемир · Шерсть · Хлопок ·
+        Оверсайз · Кеды · Деним · Худи · Оверсайз · Кеды · Деним ·
       </div>
     </section>
 
     <!-- ===================== КАТАЛОГ ===================== -->
     <section id="catalog" class="max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 scroll-mt-20">
-      <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-10">
-        <div class="reveal">
-          <p class="text-[11px] uppercase tracking-widest2 text-stone mb-3">Новая коллекция</p>
-          <h2 class="font-serif text-4xl sm:text-5xl">Бестселлеры сезона</h2>
-        </div>
-        <!-- Вкладки категорий -->
-        <div id="tabs" style="--i:1" class="reveal flex gap-6 overflow-x-auto no-scrollbar text-[12px] uppercase tracking-[0.15em] -mx-4 px-4 md:mx-0 md:px-0">
-          <button class="tab-btn active whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="all">Все</button>
-          <button class="tab-btn sale whitespace-nowrap pb-2 border-b border-transparent text-sale/70 hover:text-sale font-semibold transition" data-cat="sale">Sale</button>
-          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="top">Верх</button>
-          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="bottom">Низ</button>
-          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="outer">Верхняя одежда</button>
-          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="shoes">Кроссовки</button>
-          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="hats">Головные уборы</button>
-          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="acc">Аксессуары</button>
+      <div class="reveal mb-6">
+        <p class="text-[11px] uppercase tracking-widest2 text-stone mb-3">Новая коллекция</p>
+        <h2 class="font-serif text-4xl sm:text-5xl">Бестселлеры сезона</h2>
+      </div>
+      <!-- Вкладки категорий + значок поиска (плавно появляется при скролле вниз) -->
+      <div id="tabs" class="flex items-center gap-5 sm:gap-6 overflow-x-auto no-scrollbar text-[12px] uppercase tracking-[0.15em] -mx-4 px-4 md:mx-0 md:px-0 mb-6">
+        <button class="tab-btn active whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="all">Все</button>
+        <button class="tab-btn sale whitespace-nowrap pb-2 border-b border-transparent text-sale/70 hover:text-sale font-semibold transition" data-cat="sale">Sale</button>
+        <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="top">Верх</button>
+        <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="bottom">Низ</button>
+        <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="outer">Верхняя одежда</button>
+        <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="shoes">Кроссовки</button>
+        <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="hats">Головные уборы</button>
+        <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="acc">Аксессуары</button>
+        <button id="searchBtn" class="search-trigger ml-auto text-ink shrink-0" aria-label="Перейти к поиску" aria-controls="searchInput" title="Поиск">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </button>
+      </div>
+
+      <!-- Полноширинный поиск под заголовком каталога; при прокрутке его место занимает значок в категориях -->
+      <div id="catalogSearch" class="-mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-5">
+        <label for="searchInput" class="sr-only">Поиск по каталогу</label>
+        <div id="searchPill" class="search-pill flex items-center gap-3 min-h-12 px-4 sm:px-5 rounded-full border border-line bg-white/70 focus-within:border-ink">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="search-pill-icon text-stone shrink-0" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="searchInput" type="search" maxlength="60" placeholder="Поиск: пальто, кашемир, футболка…" class="search-pill-input w-full min-w-0 bg-transparent outline-none text-sm sm:text-base placeholder:text-stone" />
+          <button id="searchClear" type="button" class="hidden shrink-0 text-[11px] uppercase tracking-widest text-stone hover:text-ink">Очистить</button>
         </div>
       </div>
 
-      <!-- Панель: результаты поиска + сортировка -->
+      <!-- Панель: фильтры и сортировка -->
       <div class="flex flex-wrap items-center gap-3 mb-8">
         <p id="searchInfo" class="hidden order-last w-full text-sm text-stone"></p>
 
@@ -446,9 +676,21 @@
     <!-- ===================== МАНИФЕСТ ===================== -->
     <section id="about" class="bg-milk scroll-mt-16">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 grid md:grid-cols-2 gap-12 md:gap-20 items-center">
-        <div class="reveal-mask relative aspect-[4/5] overflow-hidden img-fallback order-2 md:order-1">
-          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80"
-               alt="Ателье MONTE" class="w-full h-full object-cover" loading="lazy" onerror="this.style.display='none'" />
+        <div id="manifestGallery" class="reveal-mask relative aspect-[4/5] overflow-hidden img-fallback order-2 md:order-1" aria-label="Молодёжная фотогалерея MONTE">
+          <img src="https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=1200&q=85"
+               alt="Молодой парень в уличном образе — свободная футболка и спокойные тона" class="manifest-slide is-active absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=85"
+               alt="Молодёжный street-style образ в нейтральной гамме" class="manifest-slide absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img src="https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=1200&q=85"
+               alt="Друзья в базовых вещах MONTE — расслабленный городской стиль" class="manifest-slide absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1200&q=85"
+               alt="Лёгкий молодёжный образ: слои, деним и белая база" class="manifest-slide absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <div class="absolute bottom-5 right-5 z-10 flex gap-2" aria-label="Слайды манифеста">
+            <button type="button" class="manifest-dot is-active" data-manifest-slide="0" aria-label="Фото 1"></button>
+            <button type="button" class="manifest-dot" data-manifest-slide="1" aria-label="Фото 2"></button>
+            <button type="button" class="manifest-dot" data-manifest-slide="2" aria-label="Фото 3"></button>
+            <button type="button" class="manifest-dot" data-manifest-slide="3" aria-label="Фото 4"></button>
+          </div>
         </div>
         <div class="order-1 md:order-2">
           <p class="reveal text-[11px] uppercase tracking-widest2 text-stone mb-6">Манифест</p>
@@ -494,12 +736,18 @@
         <p class="reveal text-[11px] uppercase tracking-widest2 text-milk/60 mb-4">Рассылка</p>
         <h2 class="reveal font-serif text-4xl sm:text-5xl mb-4" style="--i:1">Первыми о новых дропах</h2>
         <p class="reveal text-milk/70 text-sm mb-8" style="--i:2">Письмо раз в месяц. Без спама — только новые коллекции и закрытые предпоказы.</p>
-        <form id="newsletterForm" style="--i:3" class="reveal flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
-          <input id="newsletterEmail" type="email" required maxlength="120" autocomplete="email" placeholder="Ваш e-mail"
-                 class="flex-1 rounded-full bg-transparent border border-milk/40 px-6 py-4 text-sm outline-none focus:border-milk placeholder:text-milk/50" />
-          <button class="rounded-full bg-milk text-ink px-8 py-4 text-xs uppercase tracking-[0.2em] hover:bg-white transition">Подписаться</button>
+        <form id="newsletterForm" style="--i:3" class="reveal max-w-lg mx-auto">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input id="newsletterEmail" type="email" required maxlength="120" autocomplete="email" placeholder="Ваш e-mail"
+                   class="flex-1 rounded-full bg-transparent border border-milk/40 px-6 py-4 text-sm outline-none focus:border-milk placeholder:text-milk/50" />
+            <button type="submit" class="rounded-full bg-milk text-ink px-8 py-4 text-xs uppercase tracking-[0.2em] hover:bg-white transition shrink-0">Подписаться</button>
+          </div>
+          <label class="mt-5 flex items-start gap-2.5 text-left text-xs text-milk/70 max-w-md mx-auto">
+            <input id="newsletterConsent" type="checkbox" required class="mt-0.5 accent-white shrink-0" />
+            <span>Согласен(на) на обработку e-mail для рассылки. <a class="underline hover:text-milk" href="consent.html">Текст согласия</a> · <a class="underline hover:text-milk" href="privacy.html">Политика</a></span>
+          </label>
         </form>
-        <p id="newsletterMsg" class="hidden mt-4 text-sm text-milk/80">Спасибо! Вы подписаны на рассылку MONTE.</p>
+        <p id="newsletterMsg" class="hidden mt-4 text-sm text-milk/80" role="status">Это демонстрационная форма: адрес не отправлен и подписка не оформлена.</p>
       </div>
     </section>
   </main>
@@ -517,7 +765,7 @@
           <li><a href="#" class="link-underline" data-info="delivery">Доставка и оплата</a></li>
           <li><a href="#" class="link-underline" data-info="returns">Обмен и возврат</a></li>
           <li><a href="#" class="link-underline" data-size-guide>Таблица размеров</a></li>
-          <li><a href="#" class="link-underline" data-info="privacy">Политика конфиденциальности</a></li>
+          <li><a href="privacy.html" class="link-underline">Политика обработки персональных данных</a></li>
         </ul>
       </div>
       <div class="reveal" style="--i:2">
@@ -551,16 +799,21 @@
   <div id="productModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
     <div class="absolute inset-0 bg-ink/50" data-close-modal></div>
     <div class="relative h-full w-full flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
-      <div class="pointer-events-auto bg-cream w-full sm:max-w-4xl max-h-[92vh] overflow-y-auto grid sm:grid-cols-2 fade-in">
-        <div class="relative aspect-[4/5] sm:aspect-auto img-fallback">
-          <img id="mImg" src="" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'" />
+      <div class="pointer-events-auto relative w-full sm:max-w-4xl">
+       <!-- Простой крестик поверх карточки: виден сразу, а не внизу под фото -->
+       <button type="button" data-close-modal class="sg-x on-photo" aria-label="Закрыть">
+         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+       </button>
+       <div class="modal-sheet bg-cream overflow-y-auto grid sm:grid-cols-2 fade-in">
+        <div class="modal-photo relative aspect-[4/5] sm:aspect-auto img-fallback overflow-hidden">
+          <img id="mImg" src="" alt="" class="absolute inset-0 w-full h-full object-cover" />
+          <button type="button" id="mGalleryPrev" class="gallery-arrow is-prev" aria-label="Предыдущее фото"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button type="button" id="mGalleryNext" class="gallery-arrow is-next" aria-label="Следующее фото"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+          <div id="mGalleryDots" class="gallery-dots"></div>
         </div>
         <div class="p-6 sm:p-10 flex flex-col">
           <div class="flex justify-between items-start gap-4">
             <p id="mCat" class="text-[11px] uppercase tracking-widest2 text-stone"></p>
-            <button data-close-modal class="-mt-2 -mr-2 p-2" aria-label="Закрыть">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
           </div>
           <h3 id="mName" class="font-serif text-3xl sm:text-4xl mt-2"></h3>
           <p id="mPrice" class="text-lg mt-2"></p>
@@ -595,6 +848,7 @@
           </div>
           <p class="text-xs text-stone mt-4">Бесплатная примерка при доставке курьером.</p>
         </div>
+       </div>
       </div>
     </div>
   </div>
@@ -637,20 +891,21 @@
   <div id="sizeGuide" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-labelledby="sgTitle">
     <div class="absolute inset-0 bg-ink/50" data-close-sg></div>
     <div class="relative h-full flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
-      <div class="pointer-events-auto bg-cream w-full sm:max-w-3xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl fade-in">
+      <div class="pointer-events-auto relative w-full sm:max-w-3xl">
+       <!-- Крестик вне прокручиваемой части: всегда на виду, в том числе на телефоне -->
+       <button id="sgClose" type="button" data-close-sg class="sg-x" aria-label="Закрыть таблицу размеров">
+         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+       </button>
+       <div class="sg-sheet bg-cream overflow-y-auto rounded-t-3xl sm:rounded-3xl fade-in">
         <div class="sticky top-0 z-10 bg-cream/95 backdrop-blur px-5 sm:px-8 pt-5 sm:pt-7 pb-4 border-b border-line">
-          <div class="flex justify-between items-start gap-4">
-            <div>
-              <p class="text-[11px] uppercase tracking-widest2 text-stone">Подбор размера</p>
-              <h3 id="sgTitle" class="font-serif text-3xl sm:text-4xl mt-1">Таблица размеров</h3>
-            </div>
-            <button id="sgClose" type="button" data-close-sg class="p-2 -mr-2" aria-label="Закрыть таблицу размеров">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
+          <div class="pr-12">
+            <p class="text-[11px] uppercase tracking-widest2 text-stone">Подбор размера</p>
+            <h3 id="sgTitle" class="font-serif text-3xl sm:text-4xl mt-1">Таблица размеров</h3>
           </div>
           <div id="sgTabs" role="tablist" aria-label="Тип вещей" class="flex gap-2 overflow-x-auto no-scrollbar mt-4 -mx-5 px-5 sm:mx-0 sm:px-0"></div>
         </div>
         <div id="sgBody" class="px-5 sm:px-8 py-6"></div>
+       </div>
       </div>
     </div>
   </div>
@@ -659,7 +914,7 @@
   <div id="infoModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-ink/50" data-close-info></div>
     <div class="relative h-full flex items-center justify-center p-4 pointer-events-none">
-      <div class="pointer-events-auto bg-cream max-w-lg w-full p-8 fade-in max-h-[85vh] overflow-y-auto">
+      <div class="pointer-events-auto bg-cream max-w-lg w-full p-8 fade-in overflow-y-auto" style="max-height:85vh;max-height:calc(100dvh - 32px)">
         <div class="flex justify-between items-start mb-4">
           <h3 id="infoTitle" class="font-serif text-3xl"></h3>
           <button data-close-info class="p-2 -mr-2 -mt-2" aria-label="Закрыть">
@@ -673,6 +928,32 @@
 
   <!-- ===================== TOAST ===================== -->
   <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-ink text-milk text-sm px-6 py-3 opacity-0 pointer-events-none transition-opacity duration-300 whitespace-nowrap"></div>
+
+  <style>
+    .manifest-slide{opacity:0;transform:scale(1.025);transition:opacity 1100ms ease,transform 5000ms ease}
+    .manifest-slide.is-active{opacity:1;transform:scale(1)}
+    .manifest-dot{width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,.55);border:1px solid rgba(30,30,30,.25);transition:all .25s}
+    .manifest-dot.is-active{width:24px;background:#fff}
+    .product-photo{touch-action:pan-y;}
+    .product-photo img{transition:opacity .35s ease,transform .7s ease}
+    /* Стрелки галереи: одинаковые круги, SVG-шевроны строго по центру, равные отступы слева и справа */
+    .gallery-arrow,.card-gallery-arrow{position:absolute;top:50%;z-index:6;margin-top:-17px;width:34px;height:34px;padding:0;border:0;border-radius:50%;
+      background:rgba(250,248,244,.92);color:#171717;display:flex;align-items:center;justify-content:center;line-height:0;opacity:0;
+      box-shadow:0 1px 6px rgba(17,17,17,.18);transition:opacity .2s,background .2s;-webkit-tap-highlight-color:transparent}
+    .gallery-arrow.is-prev,.card-gallery-arrow.is-prev{left:10px}
+    .gallery-arrow.is-next,.card-gallery-arrow.is-next{right:10px}
+    .group:hover .gallery-arrow,.gallery-arrow:focus-visible{opacity:1}
+    .gallery-arrow:hover{background:#fff}
+    .gallery-dots{position:absolute;z-index:5;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:5px;pointer-events:none}
+    .gallery-dots span{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.55);box-shadow:0 1px 4px #333}
+    .gallery-dots span.active{background:#fff;transform:scale(1.35)}
+    .product-photo:hover .card-gallery-arrow,.card-gallery-arrow:focus-visible{opacity:1}
+    @media(hover:none){.card-gallery-arrow,.gallery-arrow{opacity:1;width:32px;height:32px;margin-top:-16px}}
+    /* Свайп: вертикальная прокрутка страницы работает, горизонтальный жест отдаём галерее */
+    .product-photo,.modal-photo{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+    .product-photo img,.modal-photo img{-webkit-user-drag:none;pointer-events:none}
+    @media(prefers-reduced-motion:reduce){.manifest-slide,.product-photo img{transition:none}}
+  </style>
 
   <!-- ===================== SCRIPT ===================== -->
   <script>
@@ -730,7 +1011,19 @@
         img: U('photo-1590874103328-eac38a683ce7'),
         desc: 'Вместительная сумка-шопер из плотного канваса с внутренним карманом.',
         fabric: '100% хлопок канвас, 16 oz', care: 'Стирка 30°', made: 'Россия', oneSize: true },
-      { id: 12, name: 'Шапка-бини', cat: 'hats', price: 3500,
+      { id: 47, name: 'Носки Rib Crew', cat: 'acc', price: 1900, badge: 'New',
+        img: U('photo-1586350977771-b3b0abd50c82'),
+        desc: 'Классические носки с резинкой. Мягкий хлопок, комфортная посадка на весь день.',
+        fabric: '80% хлопок, 18% полиамид, 2% эластан', care: 'Стирка 30°', made: 'Турция', oneSize: true },
+      { id: 48, name: 'Носки Invisible', cat: 'acc', price: 1600,
+        img: U('photo-1606107557195-0e29a4b5b4aa'),
+        desc: 'Невидимые носки под кеды и кроссовки. Не спадают, не натирают.',
+        fabric: '75% хлопок, 20% полиамид, 5% эластан', care: 'Стирка 30°', made: 'Турция', oneSize: true },
+      { id: 49, name: 'Носки Colour Block', cat: 'acc', price: 2200, badge: 'New',
+        img: U('photo-1556306535-0f09a537f0a3'),
+        desc: 'Яркие носки с цветовыми блоками. Для тех, кто любит акцент в деталях.',
+        fabric: '70% хлопок, 25% полиамид, 5% эластан', care: 'Стирка 30°', made: 'Португалия', oneSize: true },
+      { id: 50, name: 'Шапка-бини', cat: 'hats', price: 3500,
         img: U('photo-1576871337622-98d48d1cf531'),
         desc: 'Шапка английской резинки с отворотом. Плотная вязка, не колется.',
         fabric: '100% шерсть мериноса', care: 'Ручная стирка 30°', made: 'Италия', oneSize: true },
@@ -881,8 +1174,109 @@
       { id: 46, name: 'Кольцо с камнем', cat: 'acc', price: 8900,
         img: U('photo-1608042314453-ae338d80c427'),
         desc: 'Кольцо с натуральным камнем в гладкой оправе. Каждый камень уникален по рисунку.',
-        fabric: 'Серебро 925 с позолотой, сердолик', care: 'Избегать контакта с водой и парфюмом', made: 'Россия', sizes: ['16', '17', '18', '19'] }
+        fabric: 'Серебро 925 с позолотой, сердолик', care: 'Избегать контакта с водой и парфюмом', made: 'Россия', sizes: ['16', '17', '18', '19'] },
+
+      // ---------- Новые позиции ----------
+      { id: 51, name: 'Футболка Heavyweight', cat: 'top', price: 5500, badge: 'New',
+        img: U('photo-1583743814966-8936f5b7be1a'),
+        desc: 'Плотная футболка 280 г/м² с удлинённым рукавом. Силуэт oversize, почти не мнётся.',
+        fabric: '100% хлопок, 280 г/м²', care: 'Стирка 30°', made: 'Португалия' },
+      { id: 52, name: 'Кардиган на пуговицах', cat: 'top', price: 14900,
+        img: U('photo-1434389677669-e08b4cac3105'),
+        desc: 'Мягкий кардиган на пуговицах с V-вырезом. Можно носить как верхний слой поверх футболки.',
+        fabric: '50% шерсть, 50% акрил', care: 'Ручная стирка, сушить горизонтально', made: 'Италия' },
+      { id: 53, name: 'Джинсы Wide Leg', cat: 'bottom', price: 11900, badge: 'New',
+        img: U('photo-1541099649105-f69ad21f3246'),
+        desc: 'Широкие джинсы с высокой посадкой. Силуэт 90-х, длина до пола.',
+        fabric: '100% хлопок, деним 11 oz', care: 'Стирка 30° наизнанку', made: 'Турция' },
+      { id: 54, name: 'Брюки Cargo', cat: 'bottom', price: 9900,
+        img: U('photo-1506629082955-511b1aa78283'),
+        desc: 'Карго с накладными карманами и эластичным поясом. Удобны и в городе, и в поездке.',
+        fabric: '97% хлопок, 3% эластан', care: 'Стирка 30°', made: 'Турция' },
+      { id: 55, name: 'Бомбер Softshell', cat: 'outer', price: 18900, badge: 'New',
+        img: U('photo-1551489186-cf8726f514f8'),
+        desc: 'Лёгкий бомбер с водоотталкивающей пропиткой и мягкой подкладкой. На межсезонье.',
+        fabric: 'Верх — полиэстер softshell, подкладка — сетка', care: 'Стирка 30°', made: 'Китай' },
+      { id: 56, name: 'Панама Canvas', cat: 'hats', price: 4200,
+        img: U('photo-1514327605118-7cd25c2d3d5e'),
+        desc: 'Панама из плотного канваса с регулируемой кулиской. Защищает от солнца и дождя.',
+        fabric: '100% хлопок канвас', care: 'Стирка 30°', made: 'Россия', oneSize: true },
+      { id: 57, name: 'Кеды Platform White', cat: 'shoes', price: 15900, badge: 'New', sizes: SHOE_SIZES,
+        img: U('photo-1595950653106-6c9ebd614d3a'),
+        desc: 'Белые кеды на платформе. Визуально удлиняют силуэт, остаются лёгкими.',
+        fabric: 'Верх — кожа и текстиль, подошва — резина', care: 'Протирать влажной тканью', made: 'Вьетнам' },
+      { id: 58, name: 'Носки Merino Crew', cat: 'acc', price: 2900, badge: 'New',
+        img: U('photo-1618354691373-d851c5c3a990'),
+        desc: 'Носки из мериносовой шерсти. Регулируют температуру, не пахнут и не натирают.',
+        fabric: '70% шерсть мериноса, 25% полиамид, 5% эластан', care: 'Стирка 30°', made: 'Италия', oneSize: true }
     ];
+
+    // Галереи: у каждого товара своё уникальное главное фото, совпадающее с названием.
+    // Дополнительные кадры — из пула категории, без повторения главного фото у других товаров.
+    const CATEGORY_GALLERY_IMAGES = {
+      top: [
+        'photo-1521572163474-6864f9cf17ab','photo-1576566588028-4147f3842f27','photo-1620799140408-edc6dcb6d633',
+        'photo-1596755094514-f87e34085b2c','photo-1556821840-3a63f95609a7','photo-1586363104862-3a5e2ab60d99',
+        'photo-1620012253295-c15cc3e65df4','photo-1578587018452-892bacefd3f2','photo-1434389677669-e08b4cac3105',
+        'photo-1583743814966-8936f5b7be1a'
+      ],
+      bottom: [
+        'photo-1594633312681-425c7b97ccd1','photo-1542272604-787c3835535d','photo-1624378439575-d8705ad7ae80',
+        'photo-1473966968600-fa801b869a1a','photo-1591195853828-11db59a44f6b','photo-1577900232427-18219b9166a0',
+        'photo-1583496661160-fb5886a0aaaa','photo-1506629082955-511b1aa78283','photo-1541099649105-f69ad21f3246'
+      ],
+      outer: [
+        'photo-1539533018447-63fcce2678e3','photo-1591047139829-d91aecb6caea','photo-1551028719-00167b16eac5',
+        'photo-1539533113208-f6df8cc8b543','photo-1608063615781-e2ef8c73d114','photo-1544923246-77307dd654cb',
+        'photo-1551537482-f2075a1d41f2','photo-1551489186-cf8726f514f8'
+      ],
+      shoes: [
+        'photo-1608231387042-66d1773070a5','photo-1460353581641-37baddab0fa2','photo-1600185365483-26d7a4cc7519',
+        'photo-1549298916-b41d501d3772','photo-1491553895911-0055eca6402d','photo-1560769629-975ec94e6a86',
+        'photo-1600269452121-4f2416e55c28','photo-1543508282-6319a3e2621f','photo-1539185441755-769473a23570',
+        'photo-1525966222134-fcfa99b8ae77','photo-1542291026-7eec264c27ff','photo-1595950653106-6c9ebd614d3a'
+      ],
+      hats: [
+        'photo-1576871337622-98d48d1cf531','photo-1521369909029-2afed882baee','photo-1588850561407-ed78c282e89b',
+        'photo-1572307480813-ceb0e59d8325','photo-1514327605118-7cd25c2d3d5e'
+      ],
+      acc: [
+        'photo-1520903920243-00d872a2d1c9','photo-1590874103328-eac38a683ce7','photo-1586350977771-b3b0abd50c82',
+        'photo-1606107557195-0e29a4b5b4aa','photo-1556306535-0f09a537f0a3','photo-1511499767150-a48a237f0083',
+        'photo-1624222247344-550fb60583dc','photo-1584917865442-de89df76afd3','photo-1590548784585-643d2b9f2925',
+        'photo-1609803384069-19f3e5a70e75','photo-1608042314453-ae338d80c427','photo-1618354691373-d851c5c3a990'
+      ]
+    };
+    // 1) Гарантируем уникальные главные фото (не меняем уже заданные img, если они уникальны)
+    const usedPrimaryIds = new Set();
+    PRODUCTS.forEach((p) => {
+      let primaryId = (String(p.img).match(/photo-[^?&/]+/) || [])[0];
+      if (!primaryId) primaryId = 'photo-1521572163474-6864f9cf17ab';
+      if (usedPrimaryIds.has(primaryId)) {
+        const pool = CATEGORY_GALLERY_IMAGES[p.cat] || [];
+        const free = pool.find(id => !usedPrimaryIds.has(id));
+        if (free) {
+          primaryId = free;
+          p.img = U(free);
+        } else {
+          // крайний случай: добавляем уникальный суффикс через другой кадр
+          primaryId = primaryId + '-u' + p.id;
+        }
+      }
+      usedPrimaryIds.add(primaryId.replace(/-u\d+$/, ''));
+      p._primaryId = primaryId.replace(/-u\d+$/, '');
+    });
+    // 2) Собираем галереи: главное фото товара + другие кадры категории (вторичные могут пересекаться)
+    PRODUCTS.forEach((p) => {
+      const pool = CATEGORY_GALLERY_IMAGES[p.cat] || [];
+      const primaryId = p._primaryId;
+      const extras = pool.filter(id => id !== primaryId).slice(0, 3);
+      const ordered = [primaryId, ...extras].slice(0, 4);
+      p.images = ordered.map(id => U(id, 1000));
+      // p.img остаётся исходным (или заменённым только при коллизии)
+      if (!p.img || !String(p.img).includes(primaryId)) p.img = U(primaryId);
+      delete p._primaryId;
+    });
 
     // ---------- SALE: id товара → скидка в % ----------
     // Цена в PRODUCTS — исходная; здесь она превращается в oldPrice, а price становится ценой со скидкой.
@@ -907,12 +1301,14 @@
     const GENDER_LABEL = { w: 'Женщинам', m: 'Мужчинам', u: 'Унисекс — женщинам и мужчинам' };
 
     const LOOKBOOK = [
-      { img: U('photo-1509631179647-0177331693ae', 800), title: 'Look 01 — Утро в городе' },
-      { img: U('photo-1469334031218-e382a71b716b', 800), title: 'Look 02 — Кашемир и камень' },
-      { img: U('photo-1483985988355-763728e1935b', 800), title: 'Look 03 — Выходные' },
-      { img: U('photo-1539109136881-3be0616acf4b', 800), title: 'Look 04 — Тёплый минимал' },
-      { img: U('photo-1503342217505-b0a15ec3261c', 800), title: 'Look 05 — Монохром' },
-      { img: U('photo-1434389677669-e08b4cac3105', 800), title: 'Look 06 — Слои' }
+      { img: U('photo-1515886657613-9f3515b0c78f', 800), title: 'Look 01 — Street casual' },
+      { img: U('photo-1542291026-7eec264c27ff', 800), title: 'Look 02 — Кеды и базовый верх' },
+      { img: U('photo-1489980557514-251d61e3eeb6', 800), title: 'Look 03 — Молодёжный деним' },
+      { img: U('photo-1558769132-cb1aea458c5e', 800), title: 'Look 04 — Гардероб на вешалке' },
+      { img: U('photo-1586350977771-b3b0abd50c82', 800), title: 'Look 05 — Носки + кэжуал' },
+      { img: U('photo-1606107557195-0e29a4b5b4aa', 800), title: 'Look 06 — Носки и кроссовки' },
+      { img: U('photo-1469334031218-e382a71b716b', 800), title: 'Look 07 — Городской ритм' },
+      { img: U('photo-1503342217505-b0a15ec3261c', 800), title: 'Look 08 — Монохром youth' }
     ];
 
     const SIZES = ['S', 'M', 'L', 'XL'];
@@ -1105,19 +1501,111 @@
       return sorter ? list.sort(sorter) : list;
     }
 
+
+    // ---------- НАДЁЖНАЯ ЗАГРУЗКА ФОТО ----------
+    // Если снимок на Unsplash удалили или он не загрузился: 1) один повтор,
+    // 2) убираем его из галереи товара и показываем следующий,
+    // 3) если фото не осталось совсем — аккуратная заглушка с названием вместо пустого серого блока.
+    const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+    // Запасные молодёжные кадры для галереи «Манифест» (подставляются, если основной не загрузился)
+    const MANIFEST_SPARES = ['photo-1488161628813-04466f872be2','photo-1507003211169-0a1dd7228f2d','photo-1492562080023-ab3db95bfbce',
+      'photo-1517841905240-472988babdf9','photo-1529626455594-4ff0802cfb7e','photo-1496747611176-843222e1e57c',
+      'photo-1521572163474-6864f9cf17ab','photo-1515886657613-9f3515b0c78f','photo-1542291026-7eec264c27ff','photo-1489980557514-251d61e3eeb6']
+      .map(id => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=85`);
+    // Запасной кадр для главного баннера, если основной файл не найден
+    const HERO_SPARES = ['assets/hero-minimal.jpg'];
+    const deadPhotos = new Set();
+    const retriedPhotos = new Set();
+    const photoKey = src => (String(src).match(/photo-[\w-]+/) || [''])[0];
+
+    function showPhotoPlaceholder(box, name) {
+      if (!box || box.querySelector('.photo-ph')) return;
+      const ph = document.createElement('div');
+      ph.className = 'photo-ph';
+      ph.innerHTML = '<span>MONTE</span><small></small>';
+      ph.querySelector('small').textContent = name || '';
+      box.appendChild(ph);
+    }
+
+    function healProductPhotos(deadKey) {
+      PRODUCTS.forEach(p => { p.images = p.images.filter(u => photoKey(u) !== deadKey); });
+      PRODUCTS.forEach(p => { if (p.images.length) p.img = p.images[0]; });
+      // карточки в каталоге
+      document.querySelectorAll('[data-card-gallery]').forEach(card => {
+        const p = byId(+card.dataset.cardGallery);
+        const img = card.querySelector('[data-product-image]');
+        if (!p || !img || photoKey(img.src) !== deadKey) return;
+        const dots = card.querySelector('[data-card-dot]')?.parentElement;
+        if (p.images.length) {
+          card.dataset.index = '0';
+          img.style.display = '';
+          img.src = p.images[0];
+          if (dots) dots.innerHTML = p.images.map((_, i) => `<span class="w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-white' : 'bg-white/50'} shadow" data-card-dot="${i}"></span>`).join('');
+        } else {
+          img.style.display = 'none';
+          if (dots) dots.innerHTML = '';
+          showPhotoPlaceholder(card.querySelector('button[data-open]') || card, p.name);
+        }
+        if (p.images.length < 2) card.querySelectorAll('.card-gallery-arrow').forEach(a => a.style.display = 'none');
+      });
+      // открытая карточка товара
+      if (typeof modal !== 'undefined' && !modal.classList.contains('hidden') && state.modal && state.modal.id) {
+        const mp = byId(state.modal.id);
+        const mi = document.getElementById('mImg');
+        if (mp && mi && photoKey(mi.src) === deadKey) {
+          state.modal.imageIndex = 0;
+          if (mp.images.length) renderModalGallery(mp);
+          else { mi.style.display = 'none'; showPhotoPlaceholder(mi.parentElement, mp.name); }
+        }
+      }
+    }
+
+    document.addEventListener('error', e => {
+      const img = e.target;
+      if (!(img instanceof HTMLImageElement)) return;
+      if (img.id === 'heroImg') {              // главный баннер: один повтор, затем запасные кадры
+        if (!img.dataset.retry) { img.dataset.retry = '1'; const u = img.src; setTimeout(() => { img.src = u + (u.includes('?') ? '&' : '?') + 'r=1'; }, 1200); return; }
+        const nextHero = HERO_SPARES.shift();
+        if (nextHero) { img.dataset.retry = ''; img.src = nextHero; img.dataset.retry = nextHero.startsWith('assets') ? '1' : ''; }
+        else img.style.display = 'none';
+        return;
+      }
+      const key = photoKey(img.src);
+      if (!key || img.src.startsWith('data:')) return;
+      if (!retriedPhotos.has(key)) {          // первый сбой — пробуем ещё раз (мог быть обрыв сети)
+        retriedPhotos.add(key);
+        const url = img.src;
+        setTimeout(() => { img.src = url + (url.includes('?') ? '&' : '?') + 'r=1'; }, 1200);
+        return;
+      }
+      if (deadPhotos.has(key)) { img.style.display = 'none'; return; }
+      deadPhotos.add(key);
+      if (img.classList.contains('manifest-slide')) {   // манифест: берём следующее молодёжное фото из запаса
+        const next = MANIFEST_SPARES.shift();
+        if (next) { retriedPhotos.add(photoKey(next)); img.src = next; } else img.style.display = 'none';
+        return;
+      }
+      if (img.closest('[data-card-gallery], #productModal')) healProductPhotos(key);
+      else img.style.display = 'none';       // лукбук, корзина и т.п.: остаётся мягкий фон
+    }, true);
+
     function renderProducts() {
       const list = filteredProducts();
       const grid = $('#productGrid');
       grid.innerHTML = list.map(p => `
         <article class="reveal group flex flex-col">
-          <button type="button" class="relative aspect-[3/4] overflow-hidden img-fallback block w-full" data-open="${p.id}" aria-label="Быстрый просмотр: ${escapeHtml(p.name)}">
-            <img src="${p.img}" alt="${escapeHtml(p.name)}" loading="lazy"
-                 class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105"
-                 onerror="this.style.display='none'" />
-            ${p.badge ? `<span class="absolute top-3 left-3 bg-cream text-ink text-[10px] uppercase tracking-[0.15em] px-2 py-1">${p.badge}</span>` : ''}
-            ${p.sale ? `<span class="absolute top-3 right-3 bg-sale text-white text-[10px] font-semibold tracking-[0.1em] px-2 py-1">−${p.sale}%</span>` : ''}
-            <span class="absolute bottom-0 inset-x-0 bg-cream/90 text-[11px] uppercase tracking-[0.15em] py-3 text-center translate-y-full group-hover:translate-y-0 transition duration-300 hidden sm:block">Быстрый просмотр</span>
-          </button>
+          <div class="product-photo relative aspect-[3/4] overflow-hidden img-fallback block w-full" data-card-gallery="${p.id}" data-index="0">
+            <button type="button" class="absolute inset-0 w-full h-full text-left" data-open="${p.id}" aria-label="Быстрый просмотр: ${escapeHtml(p.name)}">
+              <img src="${p.images[0] || BLANK_IMG}" alt="${escapeHtml(p.name)} — фото 1" loading="lazy" data-product-image
+                   class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+            </button>
+            <button type="button" class="card-gallery-arrow is-prev" data-card-prev="${p.id}" aria-label="Предыдущее фото"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button type="button" class="card-gallery-arrow is-next" data-card-next="${p.id}" aria-label="Следующее фото"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+            <div class="absolute bottom-3 left-0 right-0 z-[7] flex justify-center gap-1.5 pointer-events-none">${p.images.map((_,i)=>`<span class="w-1.5 h-1.5 rounded-full ${i===0?'bg-white':'bg-white/50'} shadow" data-card-dot="${i}"></span>`).join('')}</div>
+            ${p.badge ? `<span class="absolute top-3 left-3 z-[8] bg-cream text-ink text-[10px] uppercase tracking-[0.15em] px-2 py-1 pointer-events-none">${p.badge}</span>` : ''}
+            ${p.sale ? `<span class="absolute top-3 right-3 z-[8] bg-sale text-white text-[10px] font-semibold tracking-[0.1em] px-2 py-1 pointer-events-none">−${p.sale}%</span>` : ''}
+            <span class="absolute bottom-0 inset-x-0 z-[6] bg-cream/90 text-[11px] uppercase tracking-[0.15em] py-3 text-center translate-y-full group-hover:translate-y-0 transition duration-300 hidden sm:block pointer-events-none">Быстрый просмотр</span>
+          </div>
           <div class="pt-4 flex flex-col flex-1">
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1">
               <h3 class="text-sm cursor-pointer hover:underline" data-open="${p.id}">${escapeHtml(p.name)}</h3>
@@ -1147,8 +1635,35 @@
       }
     }
 
+    function setCardGallery(card, product, index) {
+      if (!card || !product) return;
+      card.dataset.index = String(index);
+      const img = $('[data-product-image]', card);
+      img.style.opacity = '0';
+      window.setTimeout(() => {
+        img.src = product.images[index];
+        img.alt = `${product.name} — фото ${index + 1}`;
+        img.style.opacity = '1';
+      }, 120);
+      $$('[data-card-dot]', card).forEach((dot, i) => {
+        dot.classList.toggle('bg-white', i === index);
+        dot.classList.toggle('bg-white/50', i !== index);
+      });
+    }
+
     // Делегирование событий в сетке
     $('#productGrid').addEventListener('click', e => {
+      const galleryBtn = e.target.closest('[data-card-prev], [data-card-next]');
+      if (galleryBtn) {
+        e.preventDefault(); e.stopPropagation();
+        const id = +((galleryBtn.dataset.cardPrev || galleryBtn.dataset.cardNext));
+        const card = galleryBtn.closest('[data-card-gallery]');
+        const product = byId(id);
+        const current = +(card.dataset.index || 0);
+        const next = (current + (galleryBtn.hasAttribute('data-card-next') ? 1 : -1) + product.images.length) % product.images.length;
+        setCardGallery(card, product, next);
+        return;
+      }
       const sizeBtn = e.target.closest('[data-card-size]');
       if (sizeBtn) {
         const id = +sizeBtn.dataset.cardSize;
@@ -1174,6 +1689,44 @@
       const openEl = e.target.closest('[data-open]');
       if (openEl) openModal(+openEl.dataset.open);
     });
+
+    // Свайп фото пальцем (карточки в каталоге и окно быстрого просмотра).
+    // Pointer Events + touch-action: pan-y — страница по-прежнему скроллится вертикально,
+    // а горизонтальный жест не перехватывается браузером. После свайпа клик «открыть карточку» гасится.
+    let swipeJustHappened = false;
+    function attachSwipe(root, getBox, onStep) {
+      let sx = 0, sy = 0, box = null, active = false, locked = false;
+      root.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        const b = getBox(e.target); if (!b || e.target.closest('.card-gallery-arrow, .gallery-arrow')) return;
+        box = b; sx = e.clientX; sy = e.clientY; active = true; locked = false;
+      }, { passive: true });
+      root.addEventListener('pointermove', e => {
+        if (!active) return;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (!locked && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) locked = true;
+      }, { passive: true });
+      const end = e => {
+        if (!active) return; active = false;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if ((locked || Math.abs(dx) > 40) && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+          swipeJustHappened = true; setTimeout(() => { swipeJustHappened = false; }, 350);
+          onStep(box, dx < 0 ? 1 : -1);
+        }
+      };
+      root.addEventListener('pointerup', end, { passive: true });
+      root.addEventListener('pointercancel', () => { active = false; }, { passive: true });
+    }
+    attachSwipe($('#productGrid'), t => t.closest('[data-card-gallery]'), (card, dir) => {
+      const product = byId(+card.dataset.cardGallery);
+      if (!product || product.images.length < 2) return;
+      const current = +(card.dataset.index || 0);
+      setCardGallery(card, product, (current + dir + product.images.length) % product.images.length);
+    });
+    // гасим «клик» после свайпа, чтобы не открывалась карточка товара
+    $('#productGrid').addEventListener('click', e => {
+      if (swipeJustHappened) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
 
     // Вкладки
     $('#tabs').addEventListener('click', e => {
@@ -1265,20 +1818,90 @@
     initDropdown($('#genderDropdown'), value => { state.gender = value; renderProducts(); });
 
     // ---------- ПОИСК ----------
-    const searchBar = $('#searchBar');
     const searchInput = $('#searchInput');
-    $('#searchBtn').addEventListener('click', () => {
-      searchBar.classList.toggle('hidden');
-      if (!searchBar.classList.contains('hidden')) searchInput.focus();
+    const searchClear = $('#searchClear');
+    const searchDock = $('#catalogSearch');
+    const searchButton = $('#searchBtn');
+    const header = $('#header');
+    let searchDockFrame = 0;
+    const tabsEl = $('#tabs');
+    let searchForced = false;       // пользователь сам раскрыл поиск кликом по значку
+    let searchDropped = false;
+    let returnTimer = 0;
+    const searchPill = $('#searchPill');
+    const measureDrop = () => {
+      // Куда лететь капле: центр значка в категориях минус центр круга (круг — справа, 48px)
+      const dockRect = searchDock.getBoundingClientRect();
+      const pillRect = searchPill.getBoundingClientRect();
+      const iconRect = searchButton.getBoundingClientRect();
+      const padRight = parseFloat(getComputedStyle(searchDock).paddingRight) || 16;
+      const circleCx = dockRect.right - padRight - 24;
+      const circleCy = pillRect.top + pillRect.height / 2;
+      searchDock.style.setProperty('--drop-x', (iconRect.left + iconRect.width / 2 - circleCx).toFixed(1) + 'px');
+      searchDock.style.setProperty('--drop-y', (iconRect.top + iconRect.height / 2 - circleCy).toFixed(1) + 'px');
+    };
+    const setSearchDropped = (drop) => {
+      if (drop === searchDropped) return;
+      searchDropped = drop;
+      clearTimeout(returnTimer);
+      if (drop) {
+        measureDrop();
+        searchDock.classList.remove('is-returning');
+        searchDock.classList.add('is-dropped');
+        searchButton.classList.add('is-visible');
+      } else {
+        searchButton.classList.remove('is-visible');
+        searchDock.classList.remove('is-dropped');
+        searchDock.classList.add('is-returning');
+        returnTimer = setTimeout(() => searchDock.classList.remove('is-returning'), 1100);
+      }
+      searchDock.toggleAttribute('inert', drop);
+    };
+    const updateSearchDock = () => {
+      if (searchDockFrame) return;
+      searchDockFrame = requestAnimationFrame(() => {
+        searchDockFrame = 0;
+        const tabsRect = tabsEl.getBoundingClientRect();
+        // строка прилипает сразу под липкими вкладками (высота вкладок меняется с шириной экрана)
+        searchDock.style.setProperty('--search-top', Math.round(64 + tabsEl.offsetHeight - 1) + 'px');
+        const stickyTop = parseFloat(getComputedStyle(searchDock).top) || 0;
+        const isStuckSearch = searchDock.getBoundingClientRect().top <= stickyTop + 1;
+        const busy = searchForced || !!searchInput.value || document.activeElement === searchInput;
+        setSearchDropped(isStuckSearch && !busy);
+        // Подсветка липкой панели, когда она действительно «прилипла»
+        const isStuck = tabsRect.top <= 64 + 1; // header h-16
+        tabsEl.classList.toggle('is-stuck', isStuck);
+      });
+    };
+    window.addEventListener('scroll', updateSearchDock, { passive: true });
+    window.addEventListener('resize', updateSearchDock, { passive: true });
+    updateSearchDock();
+
+    // Клик по значку: капля падает обратно и раскрывается в строку поиска прямо под вкладками
+    searchButton.addEventListener('click', () => {
+      searchForced = true;
+      searchInput.removeAttribute('disabled');
+      setSearchDropped(false);
+      searchDock.removeAttribute('inert');
+      searchInput.focus({ preventScroll: true });
     });
-    $('#searchClose').addEventListener('click', () => {
-      searchBar.classList.add('hidden');
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (searchPill.contains(document.activeElement)) return;
+        searchForced = false;
+        updateSearchDock();
+      }, 200);
+    });
+    searchClear.addEventListener('click', () => {
       searchInput.value = '';
       state.query = '';
+      searchClear.classList.add('hidden');
       renderProducts();
+      searchInput.focus();
     });
     let searchDebounce;
     searchInput.addEventListener('input', () => {
+      searchClear.classList.toggle('hidden', !searchInput.value);
       clearTimeout(searchDebounce);
       searchDebounce = setTimeout(() => {
         state.query = searchInput.value;
@@ -1290,6 +1913,7 @@
         e.preventDefault();
         document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
       }
+      if (e.key === 'Escape') searchClear.click();
     });
 
     // ---------- МОДАЛКА ТОВАРА ----------
@@ -1304,12 +1928,25 @@
       $('#mSizeGuide').classList.toggle('hidden', !!p.oneSize && p.cat !== 'hats');
     }
 
+    function renderModalGallery(product) {
+      const p = product || byId(state.modal.id);
+      const index = state.modal.imageIndex || 0;
+      const img = $('#mImg');
+      img.style.display = '';
+      img.src = (p.images[index] || BLANK_IMG).replace('w=1000', 'w=1200');
+      img.alt = `${p.name} — фото ${index + 1}`;
+      $('#mGalleryPrev').classList.toggle('hidden', p.images.length < 2);
+      $('#mGalleryNext').classList.toggle('hidden', p.images.length < 2);
+      $('#mGalleryDots').innerHTML = p.images.map((_,i)=>`<span class="${i===index?'active':''}"></span>`).join('');
+    }
+
     function openModal(id) {
       const p = byId(id);
       state.modal = { id, size: state.cardSize[id] || null, qty: 1 };
       const img = $('#mImg');
       img.style.display = '';
-      img.src = p.img.replace('w=900', 'w=1200');
+      state.modal.imageIndex = 0;
+      renderModalGallery(p);
       img.alt = p.name;
       $('#mCat').textContent = CATEGORIES[p.cat];
       $('#mName').textContent = p.name;
@@ -1331,6 +1968,16 @@
       const s = e.target.closest('[data-modal-size]');
       if (s) { state.modal.size = s.dataset.size; renderModalSizes(); }
     });
+    function stepModalGallery(direction) {
+      const p = byId(state.modal.id);
+      if (!p) return;
+      state.modal.imageIndex = (state.modal.imageIndex + direction + p.images.length) % p.images.length;
+      renderModalGallery(p);
+    }
+    attachSwipe($('#productModal'), t => t.closest('.modal-photo'), (box, dir) => stepModalGallery(dir));
+    $('#mGalleryPrev').addEventListener('click', () => stepModalGallery(-1));
+    $('#mGalleryNext').addEventListener('click', () => stepModalGallery(1));
+
     $('#mQtyMinus').addEventListener('click', () => {
       state.modal.qty = Math.max(1, state.modal.qty - 1);
       $('#mQty').textContent = state.modal.qty;
@@ -1408,7 +2055,7 @@
         return `
           <div class="flex gap-4 py-5">
             <div class="relative w-20 h-24 shrink-0 overflow-hidden img-fallback">
-              <img src="${p.img.replace('w=900', 'w=300')}" alt="${escapeHtml(p.name)}" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'" />
+              <img src="${(p.images[0] || p.img).replace(/w=\d+/, 'w=300')}" alt="${escapeHtml(p.name)}" class="absolute inset-0 w-full h-full object-cover" />
             </div>
             <div class="flex-1 flex flex-col min-w-0">
               <div class="flex justify-between gap-2">
@@ -1491,7 +2138,7 @@
           <div class="reveal-mask relative aspect-[3/4] overflow-hidden img-fallback" style="--i:${i % 3}">
             <img src="${l.img}" alt="${escapeHtml(l.title)}" loading="lazy"
                  class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105"
-                 onerror="this.style.display='none'" />
+                 />
             <div class="absolute inset-0 bg-ink/0 group-hover:bg-ink/20 transition"></div>
           </div>
           <figcaption class="reveal mt-3 text-xs uppercase tracking-[0.15em] text-graphite" style="--i:${(i % 3) + 2}">${escapeHtml(l.title)}</figcaption>
@@ -1520,9 +2167,6 @@
       returns: ['Обмен и возврат', `
         <p>Вы можете вернуть или обменять товар в течение 30 дней с момента получения, если он не был в носке и сохранены бирки.</p>
         <p>Деньги возвращаются на карту в течение 3–5 рабочих дней после получения возврата.</p>`],
-      privacy: ['Политика конфиденциальности', `
-        <p>Мы собираем только данные, необходимые для обработки заказа и рассылки: имя, телефон, e-mail и адрес доставки.</p>
-        <p>Данные не передаются третьим лицам, кроме служб доставки и платёжных систем. Вы можете запросить удаление своих данных, написав на hello@monte.store.</p>`]
     };
 
     const infoModal = $('#infoModal');
@@ -1903,8 +2547,9 @@
     $('#newsletterForm').addEventListener('submit', e => {
       e.preventDefault();
       const email = $('#newsletterEmail');
-      if (!email.checkValidity()) { email.reportValidity(); return; }
-      e.target.classList.add('hidden');
+      const consent = $('#newsletterConsent');
+      if (!email.checkValidity() || !consent.checked) { e.target.reportValidity(); return; }
+      // Демо: данные не отправляются и не сохраняются. Реальную подписку подключать только к российской БД/сервису после настройки оператора и поручения обработки.
       $('#newsletterMsg').classList.remove('hidden');
     });
 
@@ -1917,13 +2562,111 @@
       if (!drawer.classList.contains('hidden')) closeCart();
       if (!infoModal.classList.contains('hidden')) closeInfo();
       if (!menu.classList.contains('hidden')) { menu.classList.add('hidden'); lockScroll(false); }
-      if (!searchBar.classList.contains('hidden')) searchBar.classList.add('hidden');
     });
+
+
+    // ---------- ПРЕДЗАГРУЗОЧНЫЙ ЭКРАН ----------
+    (function initPreloader() {
+      const el = document.getElementById('preloader');
+      const root = document.documentElement;
+      if (!el) { root.classList.remove('is-loading'); return; }
+      const num = document.getElementById('plNum');
+      const logo = document.getElementById('plLogo');
+      const statusEl = document.getElementById('plStatus');
+      const clockEl = document.getElementById('plClock');
+      // слова-стили, статусы по ходу загрузки и часы
+      const WORDS = ['Street', 'Oversize', 'Denim', 'Sneakers', 'Hoodie', 'Весна — Лето 2027'];
+      let wi = 0;
+      const wordTimer = setInterval(() => {
+        const w = document.getElementById('plWord'); if (!w) return;
+        wi = (wi + 1) % WORDS.length;
+        const b = document.createElement('b'); b.id = 'plWord'; b.textContent = WORDS[wi]; w.replaceWith(b);   // новый узел перезапускает анимацию
+      }, 650);
+      const STATUSES = [[0, 'Собираем образы'], [30, 'Подбираем размеры'], [60, 'Гладим футболки'], [85, 'Почти готово'], [100, 'Добро пожаловать']];
+      const fmt = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      const clockTimer = setInterval(() => { clockEl.textContent = 'Москва ' + fmt.format(new Date()); }, 1000);
+      clockEl.textContent = 'Москва ' + fmt.format(new Date());
+      let spun = false;
+      const bar = document.getElementById('plBar');
+      const MIN = 2600;                 // минимум, чтобы экран успели рассмотреть
+      const MAX = 6000;                 // страховка: дольше не держим, даже если фото грузится медленно
+      const t0 = performance.now();
+      let target = 8, shown = 0, finished = false;
+      const hero = document.getElementById('heroImg');
+      let heroReady = !hero || (hero.complete && hero.naturalWidth > 0);
+      let pageReady = document.readyState === 'complete';
+      const recalc = () => {
+        target = 8 + (document.readyState !== 'loading' ? 32 : 0) + (heroReady ? 35 : 0) + (pageReady ? 25 : 0);
+      };
+      if (hero && !heroReady) {
+        const ok = () => { heroReady = true; recalc(); };
+        hero.addEventListener('load', ok, { once: true });
+        hero.addEventListener('error', ok, { once: true });
+      }
+      document.addEventListener('DOMContentLoaded', recalc);
+      window.addEventListener('load', () => { pageReady = true; recalc(); }, { once: true });
+      recalc();
+
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        num.textContent = '100'; bar.style.transform = 'scaleX(1)';
+        el.style.setProperty('--p', '1'); statusEl.textContent = 'Добро пожаловать';
+        clearInterval(wordTimer);
+        setTimeout(() => {
+          el.classList.add('is-done');
+          root.classList.remove('is-loading');           // запускаем появление текста на первом экране
+          setTimeout(() => { el.classList.add('is-gone'); clearInterval(clockTimer); }, 1100);
+        }, 250);
+      };
+      const tick = now => {
+        if (finished) return;
+        const elapsed = now - t0;
+        // плавно догоняем цель; до минимального времени не доходим до 100
+        const cap = elapsed < MIN ? Math.min(target, 99 * (elapsed / MIN)) : target;
+        shown += (cap - shown) * 0.12;
+        const v = Math.min(100, Math.round(shown));
+        num.textContent = v;
+        bar.style.transform = `scaleX(${shown / 100})`;
+        el.style.setProperty('--p', (shown / 100).toFixed(3));
+        const st = STATUSES.filter(x => v >= x[0]).pop();
+        if (st && statusEl.textContent !== st[1]) statusEl.textContent = st[1];
+        if (!spun && elapsed > 1100) { spun = true; logo.classList.add('spin'); }   // после выезда буквы начинают вращаться
+        if ((target >= 100 && elapsed >= MIN && shown > 98.5) || elapsed >= MAX) return finish();
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    })();
 
     // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     $('#year').textContent = new Date().getFullYear();
     observeReveals(document);
     initScrollEffects();
+
+    // Плавная смена молодёжных кадров в манифесте каждые 5 секунд.
+    (function initManifestGallery() {
+      const gallery = $('#manifestGallery');
+      if (!gallery) return;
+      const slides = $$('.manifest-slide', gallery);
+      const dots = $$('[data-manifest-slide]', gallery);
+      let active = 0;
+      const INTERVAL = 5000;
+      const show = index => {
+        active = ((index % slides.length) + slides.length) % slides.length;
+        slides.forEach((slide, i) => slide.classList.toggle('is-active', i === active));
+        dots.forEach((dot, i) => dot.classList.toggle('is-active', i === active));
+      };
+      dots.forEach(dot => dot.addEventListener('click', () => show(+dot.dataset.manifestSlide)));
+      if (!reduceMotion && slides.length > 1) {
+        let timer = window.setInterval(() => show(active + 1), INTERVAL);
+        gallery.addEventListener('mouseenter', () => window.clearInterval(timer));
+        gallery.addEventListener('mouseleave', () => { window.clearInterval(timer); timer = window.setInterval(() => show(active + 1), INTERVAL); });
+        document.addEventListener('visibilitychange', () => {
+          window.clearInterval(timer);
+          if (!document.hidden) timer = window.setInterval(() => show(active + 1), INTERVAL);
+        });
+      }
+    })();
     renderProducts();
     renderLookbook();
     renderCart();
