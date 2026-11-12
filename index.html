@@ -45,8 +45,11 @@
   <style>
     html { scroll-behavior: smooth; }
     /* Mobile layout guard: prevent accidental page-wide horizontal scrolling on iOS Safari */
-    html, body { width: 100%; max-width: 100%; overflow-x: clip; }
-    body { min-width: 0; }
+    html { width: 100%; max-width: 100%; overflow-x: clip; }
+    body { width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden; }
+    body, #top { position: relative; }
+    #productGrid, #tabs, #lookbookTrack { overscroll-behavior-x: contain; }
+    #productGrid [data-card-gallery], #productModal .product-modal-photo { touch-action: pan-y; }
     #top, main, #catalog, #productGrid { min-width: 0; max-width: 100%; }
     #productGrid { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     #productGrid > article { min-width: 0; max-width: 100%; }
@@ -496,7 +499,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#111111">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="MONTE">
   <link rel="apple-touch-icon" href="hero-minimal.jpg">
 </head>
@@ -1728,22 +1731,45 @@
 
     // Перелистывание фото карточки свайпом на телефоне.
     let galleryTouchStartX = 0;
+    let activeTouchGallery = null;
     $('#productGrid').addEventListener('touchstart', e => {
       const gallery = e.target.closest('[data-card-gallery]');
       if (!gallery || !e.touches.length) return;
+      activeTouchGallery = gallery;
       galleryTouchStartX = e.touches[0].clientX;
     }, { passive: true });
     $('#productGrid').addEventListener('touchend', e => {
-      const gallery = e.target.closest('[data-card-gallery]');
-      if (!gallery || !e.changedTouches.length || !galleryTouchStartX) return;
+      const gallery = activeTouchGallery;
+      if (!gallery || !e.changedTouches.length || galleryTouchStartX === 0) return;
       const delta = e.changedTouches[0].clientX - galleryTouchStartX;
       galleryTouchStartX = 0;
+      activeTouchGallery = null;
       if (Math.abs(delta) < 35) return;
       const product = byId(+gallery.dataset.cardGallery);
+      if (!product || product.images.length < 2) return;
       const current = +(gallery.dataset.index || 0);
       const next = (current + (delta < 0 ? 1 : -1) + product.images.length) % product.images.length;
       setCardGallery(gallery, product, next);
     }, { passive: true });
+    $('#productGrid').addEventListener('touchcancel', () => { galleryTouchStartX = 0; activeTouchGallery = null; }, { passive: true });
+
+    // Свайп фотографий в открытой карточке товара.
+    let modalTouchStartX = 0;
+    let modalTouchStartY = 0;
+    const modalPhoto = $('#productModal .product-modal-photo');
+    modalPhoto.addEventListener('touchstart', e => {
+      if (!e.touches.length) return;
+      modalTouchStartX = e.touches[0].clientX;
+      modalTouchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    modalPhoto.addEventListener('touchend', e => {
+      if (!e.changedTouches.length || !modalTouchStartX) return;
+      const dx = e.changedTouches[0].clientX - modalTouchStartX;
+      const dy = e.changedTouches[0].clientY - modalTouchStartY;
+      modalTouchStartX = 0; modalTouchStartY = 0;
+      if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.2) stepModalGallery(dx < 0 ? 1 : -1);
+    }, { passive: true });
+    modalPhoto.addEventListener('touchcancel', () => { modalTouchStartX = 0; modalTouchStartY = 0; }, { passive: true });
 
     // Вкладки
     $('#tabs').addEventListener('click', e => {
