@@ -393,7 +393,7 @@
     .sg-x:active { background: rgba(17,17,17,.12); }
 
     /* ---------- Поиск: строка сворачивается к значку в шапке рядом с примеркой ---------- */
-    #catalogSearch { position: sticky; top: var(--search-top, 6.6rem); z-index: 29; isolation: isolate; }
+    #catalogSearch { position: sticky; top: var(--search-top, 6.6rem); z-index: 31; isolation: isolate; }
     #catalogSearch::before {
       content: ''; position: absolute; inset: 0; z-index: -1;
       background: rgba(250, 248, 244, .96);
@@ -446,7 +446,7 @@
     }
     .search-trigger.is-visible {
       opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1);
-      transition: opacity .25s ease .95s, transform .55s cubic-bezier(.34,1.7,.5,1) .95s, visibility 0s linear .95s;
+      transition: opacity .25s ease .15s, transform .55s cubic-bezier(.34,1.7,.5,1) .15s, visibility 0s linear .15s;
     }
     /* Значок всегда прижат к правому краю видимой части вкладок, даже если вкладки прокручены */
     .search-trigger { position: sticky; right: 0; z-index: 2; padding: .5rem .25rem .5rem 1.75rem; margin-right: -.25rem; background: linear-gradient(to left, rgba(250,248,244,1) 62%, rgba(250,248,244,0)); }
