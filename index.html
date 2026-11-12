@@ -370,6 +370,21 @@
     }
     .sg-x.on-photo { background: rgba(250,248,244,.92); box-shadow: 0 2px 10px rgba(17,17,17,.18); }
     .modal-sheet { max-height: 92vh; max-height: calc(100dvh - 16px); overscroll-behavior: contain; }
+    /* Product quick view: keep photo compact so product details are visible on phones */
+    #productModal .modal-sheet { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+    #productModal .modal-sheet > .product-modal-photo {
+      height: min(36dvh, 300px); min-height: 190px; aspect-ratio: auto;
+    }
+    #productModal .modal-sheet > .product-modal-info {
+      min-width: 0; padding: 18px 20px calc(22px + env(safe-area-inset-bottom));
+    }
+    #productModal .modal-sheet > .product-modal-info h3 { font-size: clamp(1.65rem, 7vw, 2.25rem); line-height: 1.05; }
+    #productModal .modal-sheet { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+    @media (min-width: 640px) {
+      #productModal .modal-sheet { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      #productModal .modal-sheet > .product-modal-photo { height: auto; min-height: 520px; aspect-ratio: auto; }
+      #productModal .modal-sheet > .product-modal-info { padding: 40px; }
+    }
     @media (min-width: 640px) { .modal-sheet { max-height: 92vh; max-height: calc(100dvh - 48px); } .sg-x.on-photo { top: 14px; right: 14px; } }
     .sg-x:hover { background: rgba(17,17,17,.06); }
     .sg-x:active { background: rgba(17,17,17,.12); }
@@ -833,13 +848,13 @@
          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
        </button>
        <div class="modal-sheet bg-cream overflow-y-auto grid sm:grid-cols-2 fade-in">
-        <div class="relative aspect-[4/5] sm:aspect-auto img-fallback overflow-hidden">
+        <div class="product-modal-photo relative aspect-[4/5] sm:aspect-auto img-fallback overflow-hidden">
           <img id="mImg" src="" alt="" class="absolute inset-0 w-full h-full object-cover" />
           <button type="button" id="mGalleryPrev" class="gallery-arrow left-3" aria-label="Предыдущее фото">‹</button>
           <button type="button" id="mGalleryNext" class="gallery-arrow right-3" aria-label="Следующее фото">›</button>
           <div id="mGalleryDots" class="gallery-dots"></div>
         </div>
-        <div class="p-6 sm:p-10 flex flex-col">
+        <div class="product-modal-info p-6 sm:p-10 flex flex-col">
           <div class="flex justify-between items-start gap-4">
             <p id="mCat" class="text-[11px] uppercase tracking-widest2 text-stone"></p>
           </div>
