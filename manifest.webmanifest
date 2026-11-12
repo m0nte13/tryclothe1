@@ -1,18 +1,23 @@
 {
-  "id": "./",
-  "name": "MONTE — магазин одежды",
+  "name": "MONTE — Quiet Essentials",
   "short_name": "MONTE",
-  "description": "Каталог MONTE и виртуальная примерка одежды.",
+  "description": "Магазин одежды MONTE: каталог, корзина и виртуальная примерка.",
   "lang": "ru",
+  "dir": "ltr",
+  "id": "/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#F8F6F2",
-  "theme_color": "#F8F6F2",
+  "orientation": "portrait",
+  "background_color": "#FAF8F4",
+  "theme_color": "#FAF8F4",
+  "categories": ["shopping", "lifestyle"],
   "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Примерка", "url": "./tryon.html", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

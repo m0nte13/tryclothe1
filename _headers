@@ -1,23 +1,15 @@
 # HTTP-заголовки безопасности для хостинга MONTE.
-# Формат понимают Netlify и Cloudflare Pages (файл кладётся в корень сайта).
-# Для nginx/Apache — см. раздел «Хостинг» в SECURITY.md.
+# Формат понимают Netlify и Cloudflare Pages.
 
 /*
-  # Запрет встраивать сайт в чужие страницы (защита от кликджекинга)
   X-Frame-Options: DENY
   Content-Security-Policy: frame-ancestors 'none'
-  # Браузер не «угадывает» тип файлов
   X-Content-Type-Options: nosniff
-  # Чужим сайтам уходит только домен, без пути и параметров
   Referrer-Policy: strict-origin-when-cross-origin
-  # Только HTTPS на год вперёд (включать, когда HTTPS уже настроен)
   Strict-Transport-Security: max-age=31536000; includeSubDomains
-  # Камера — только для своих страниц (примерка); микрофон и геолокация не нужны
   Permissions-Policy: camera=(self), microphone=(), geolocation=(), payment=(self)
-  # Изоляция окна от чужих вкладок, открытых через window.open
   Cross-Origin-Opener-Policy: same-origin
 
-# Страница оплаты не должна кешироваться и индексироваться
 /checkout.html
   Cache-Control: no-store
   X-Robots-Tag: noindex
