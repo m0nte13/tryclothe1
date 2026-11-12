@@ -315,7 +315,14 @@
     .pl-tag.t4 { bottom: 30%; right: 9%; --r: -6deg; --d: 1.8s; border-color: #C8102E; color: #fff; background: #C8102E; }
     @keyframes pl-tag-in { to { opacity: 1; } }
     @keyframes pl-float { 0%,100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-12px) rotate(calc(var(--r, 0deg) * -.5)); } }
-    @media (max-width: 520px) { .pl-tag.t3, .pl-tag.t4 { display: none; } .pl-tag.t1 { top: 20%; } .pl-tag.t2 { top: 27%; } .pl-top span:last-child { display: none; } }
+    @media (max-width: 520px) {
+      .pl-tag.t3, .pl-tag.t4 { display: none; }
+      .pl-tag.t1 { top: 20%; }
+      .pl-tag.t2 { top: 27%; }
+      .pl-top { font-size: 8px; letter-spacing: .12em; gap: 8px; }
+      .pl-top span { white-space: nowrap; }
+      .pl-top span:last-child { display: inline !important; }
+    }
 
     @media (prefers-reduced-motion: reduce) {
       #preloader { transition: opacity .4s ease; }
@@ -351,7 +358,7 @@
     .sg-x:hover { background: rgba(17,17,17,.06); }
     .sg-x:active { background: rgba(17,17,17,.12); }
 
-    /* ---------- Поиск: строка прилипает под вкладками, сжимается в каплю и «улетает» вверх в значок ---------- */
+    /* ---------- Поиск: строка сворачивается к значку в шапке рядом с примеркой ---------- */
     #catalogSearch { position: sticky; top: var(--search-top, 6.6rem); z-index: 29; isolation: isolate; }
     #catalogSearch::before {
       content: ''; position: absolute; inset: 0; z-index: -1;
@@ -408,8 +415,7 @@
       transition: opacity .25s ease .95s, transform .55s cubic-bezier(.34,1.7,.5,1) .95s, visibility 0s linear .95s;
     }
     /* Значок всегда прижат к правому краю видимой части вкладок, даже если вкладки прокручены */
-    .search-trigger { position: sticky; right: 0; z-index: 2; padding: .5rem .25rem .5rem 1.75rem; margin-right: -.25rem;
-      background: linear-gradient(to left, rgba(250,248,244,1) 62%, rgba(250,248,244,0)); }
+    .search-trigger { position: relative; z-index: 2; padding: .5rem; margin: 0; background: transparent; }
     @media (prefers-reduced-motion: reduce) {
       #catalogSearch.is-dropped .search-pill, #catalogSearch.is-returning .search-pill { animation: none; }
       #catalogSearch.is-dropped .search-pill { opacity: 0; }
@@ -521,11 +527,14 @@
         </a>
       </nav>
 
-      <!-- Корзина (поиск перенесён в категории) -->
+      <!-- Поиск, примерка и корзина в одной строке шапки -->
       <div class="col-start-3 flex justify-end items-center gap-1 sm:gap-3">
         <a href="tryon.html" class="lg:hidden p-2" aria-label="Виртуальная примерка через камеру">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8.5A2.5 2.5 0 015.5 6h1.6l1.4-2h7l1.4 2h1.6A2.5 2.5 0 0121 8.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5v-9z"/><circle cx="12" cy="13" r="3.6"/></svg>
         </a>
+        <button id="searchBtn" class="search-trigger is-visible p-2 text-ink" aria-label="Открыть поиск" aria-controls="searchInput" title="Поиск">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </button>
         <button id="cartBtn" class="relative p-2" aria-label="Корзина">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8h14l-1.2 12H6.2L5 8z"/><path d="M9 8V6a3 3 0 016 0v2"/></svg>
           <span id="cartCount" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-ink text-milk text-[10px] leading-[18px] text-center hidden">0</span>
@@ -609,7 +618,7 @@
         <p class="text-[11px] uppercase tracking-widest2 text-stone mb-3">Новая коллекция</p>
         <h2 class="font-serif text-4xl sm:text-5xl">Бестселлеры сезона</h2>
       </div>
-      <!-- Вкладки категорий + значок поиска (плавно появляется при скролле вниз) -->
+      <!-- Вкладки категорий -->
       <div id="tabs" class="flex items-center gap-5 sm:gap-6 overflow-x-auto no-scrollbar text-[12px] uppercase tracking-[0.15em] -mx-4 px-4 md:mx-0 md:px-0 mb-6">
         <button class="tab-btn active whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="all">Все</button>
         <button class="tab-btn sale whitespace-nowrap pb-2 border-b border-transparent text-sale/70 hover:text-sale font-semibold transition" data-cat="sale">Sale</button>
@@ -619,12 +628,9 @@
         <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="shoes">Кроссовки</button>
         <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="hats">Головные уборы</button>
         <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="acc">Аксессуары</button>
-        <button id="searchBtn" class="search-trigger ml-auto text-ink shrink-0" aria-label="Перейти к поиску" aria-controls="searchInput" title="Поиск">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        </button>
       </div>
 
-      <!-- Полноширинный поиск под заголовком каталога; при прокрутке его место занимает значок в категориях -->
+      <!-- Полноширинный поиск под заголовком каталога; при прокрутке сворачивается к значку в шапке -->
       <div id="catalogSearch" class="-mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-5">
         <label for="searchInput" class="sr-only">Поиск по каталогу</label>
         <div id="searchPill" class="search-pill flex items-center gap-3 min-h-12 px-4 sm:px-5 rounded-full border border-line bg-white/70 focus-within:border-ink">
@@ -1810,12 +1816,10 @@
     let returnTimer = 0;
     const searchPill = $('#searchPill');
     const measureDrop = () => {
-      // Куда лететь капле: центр значка в категориях минус центр круга (круг — справа, 48px)
-      const dockRect = searchDock.getBoundingClientRect();
+      // Куда лететь капле: к значку поиска в шапке, рядом с виртуальной примеркой.
       const pillRect = searchPill.getBoundingClientRect();
       const iconRect = searchButton.getBoundingClientRect();
-      const padRight = parseFloat(getComputedStyle(searchDock).paddingRight) || 16;
-      const circleCx = dockRect.right - padRight - 24;
+      const circleCx = pillRect.left + pillRect.width / 2;
       const circleCy = pillRect.top + pillRect.height / 2;
       searchDock.style.setProperty('--drop-x', (iconRect.left + iconRect.width / 2 - circleCx).toFixed(1) + 'px');
       searchDock.style.setProperty('--drop-y', (iconRect.top + iconRect.height / 2 - circleCy).toFixed(1) + 'px');
