@@ -74,6 +74,13 @@
     @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } .pop { animation: none; } }
   </style>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MONTE">
+  <link rel="apple-touch-icon" href="assets/hero-minimal.jpg">
 </head>
 
 <body class="bg-cream text-ink font-sans">
@@ -685,6 +692,10 @@
 
   syncSections();
 })();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(err => console.warn("PWA service worker:", err))); }
 </script>
 </body>
 </html>
