@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Безопасность: разрешаем загрузку только из перечисленных источников (см. SECURITY.md) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; manifest-src 'self'; script-src 'self' file: 'unsafe-inline' https://cdn.tailwindcss.com/3.4.17; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com; connect-src 'self'; worker-src 'self'; form-action 'self'; base-uri 'none'; object-src 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>MONTE — Quiet Essentials</title>
+  <meta name="description" content="MONTE — бренд одежды в эстетике quiet luxury. Базовые вещи из натуральных тканей." />
+
+
+  <!-- Приложение для iPhone (PWA): значок, запуск без адресной строки -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="MONTE" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#FAF8F4" />
+  <meta name="format-detection" content="telephone=no" />
+  <style>
+    html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+    body { padding-bottom: env(safe-area-inset-bottom); overscroll-behavior-y: none; }
+    @media (display-mode: standalone) { body { -webkit-touch-callout: none; } input, textarea { -webkit-touch-callout: default; } }
+  </style>
+
+  <!-- Шрифты -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <!-- Локальная копия Tailwind Play CDN 3.4.17 (без зависимости от чужого сервера) -->
+  <script src="vendor/tailwindcss-3.4.17.js"></script>
+  <script src="pwa.js" defer></script>
+  <!-- Запасной вариант: если папку vendor не загрузили на хостинг, берём ту же версию с официального CDN -->
+  <script>window.tailwind || document.write('<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>')</script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#111111',
+            graphite: '#2B2B2B',
+            stone: '#8A8680',
+            milk: '#F4EFE6',
+            cream: '#FAF8F4',
+            line: '#E4DED3',
+            sale: '#C8102E'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif']
+          },
+          letterSpacing: { widest2: '0.3em' }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body { -webkit-font-smoothing: antialiased; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .img-fallback { background: linear-gradient(135deg, #E9E3D8 0%, #CFC7BA 100%); }
+    .fade-in { animation: fadeIn .5s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .size-btn.active { background: #111; color: #fff; border-color: #111; }
+    .tab-btn.active { color: #111; border-color: #111; }
+    .tab-btn.sale.active { color: #C8102E; border-color: #C8102E; }
+    .link-underline { background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size .3s; }
+    .link-underline:hover { background-size: 100% 1px; }
+    body.locked { overflow: hidden; }
+
+    /* =====================================================================
+       SCROLL-ANIMATIONS
+       Основной режим — нативные CSS Scroll-driven animations
+       (animation-timeline: scroll() / view()): прогресс анимации привязан
+       к позиции прокрутки и проигрывается назад при скролле вверх.
+       Фолбэк для браузеров без поддержки — IntersectionObserver + transition.
+       --i — порядковый индекс элемента для каскада (0, 1, 2…).
+       ===================================================================== */
+
+    /* Важно: overflow: clip (а не hidden), чтобы контейнер не становился
+       scroll-контейнером и не «перехватывал» view()-таймлайн потомков */
+    .reveal-mask { overflow: clip !important; }
+    .split-line { display: block; overflow: clip; }
+    .split-line > span { display: inline-block; }
+    .marquee-wrap { overflow-x: clip; }
+    /* Стрелки лукбука въезжают справа — не даём им создать горизонтальный скролл страницы */
+    #lookbook { overflow-x: clip; }
+
+    /* ---------- Логотип MONTE: буквы непрерывно вращаются вокруг оси Y ---------- */
+    .logo-spin { display: inline-flex; perspective: 600px; }
+    .logo-spin > span {
+      display: inline-block;
+      transform-style: preserve-3d;
+      /* Равномерное вращение без пауз; отрицательная задержка сдвигает фазу
+         каждой буквы, поэтому волна идёт сразу, без «разгона» при загрузке */
+      animation: logo-spin 3s linear infinite;
+      animation-delay: calc(var(--k, 0) * -0.15s);
+    }
+    @keyframes logo-spin {
+      from { transform: rotateY(0deg); }
+      to   { transform: rotateY(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) { .logo-spin > span { animation: none; } }
+
+    /* ---------- Выпадающий список сортировки ---------- */
+    .sort-list {
+      box-shadow: 0 18px 40px -16px rgba(17,17,17,.28);
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transform: translateY(-6px) scale(.98); transform-origin: top right;
+      transition: opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+    }
+    .sort-list.origin-top-left { transform-origin: top left; }
+    .sort-list.open {
+      opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+      transition: opacity .2s ease, transform .2s ease, visibility 0s;
+    }
+    .sort-opt {
+      display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
+      padding: .65rem 1rem; border-radius: .75rem; font-size: .875rem;
+      cursor: pointer; white-space: nowrap; transition: background-color .15s, color .15s;
+    }
+    .sort-opt.is-active { background: #F4EFE6; }
+    .sort-opt[aria-selected="true"] { background: #111; color: #FAF8F4; }
+    .sort-opt[aria-selected="true"]::after { content: '✓'; font-size: .8rem; }
+
+    #scrollProgress { position: fixed; top: 0; left: 0; height: 2px; width: 100%; background: #111; transform-origin: 0 50%; transform: scaleX(0); z-index: 70; pointer-events: none; }
+
+    /* ---------- ФОЛБЭК (IntersectionObserver добавляет .is-visible) ---------- */
+    .reveal { opacity: 0; transform: translateY(40px); transition: opacity .9s cubic-bezier(.2,.65,.3,1), transform .9s cubic-bezier(.2,.65,.3,1); transition-delay: calc(var(--i, 0) * 100ms); }
+    .reveal.from-right { transform: translateX(50px); }
+    .reveal.is-visible { opacity: 1; transform: none; }
+    .reveal-mask { clip-path: inset(100% 0 0 0); transition: clip-path 1.2s cubic-bezier(.77,0,.18,1); transition-delay: calc(var(--i, 0) * 100ms); }
+    .reveal-mask img { transform: scale(1.2); transition: transform 1.6s cubic-bezier(.2,.65,.3,1); transition-delay: calc(var(--i, 0) * 100ms); }
+    .reveal-mask.is-visible { clip-path: inset(0 0 0 0); }
+    .reveal-mask.is-visible img { transform: scale(1); }
+    .split-line > span { transform: translateY(105%); transition: transform 1s cubic-bezier(.2,.65,.3,1); transition-delay: calc(var(--i, 0) * 100ms); }
+    .is-visible .split-line > span { transform: none; }
+    #header { transition: box-shadow .3s; }
+    #header.scrolled { box-shadow: 0 6px 24px -12px rgba(17,17,17,.18); }
+
+    /* ---------- SCROLL-DRIVEN (Chrome/Edge 115+, Safari 26+) ---------- */
+    @property --n { syntax: '<integer>'; inherits: false; initial-value: 0; }
+
+    @keyframes sd-up      { from { opacity: 0; transform: translateY(70px); } to { opacity: 1; transform: none; } }
+    @keyframes sd-right   { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: none; } }
+    @keyframes sd-mask    { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+    @keyframes sd-img-y   { from { transform: translateY(-8%) scale(1.18); } to { transform: translateY(8%) scale(1.18); } }
+    @keyframes sd-img-x   { from { transform: translateX(-7%) scale(1.15); } to { transform: translateX(7%) scale(1.15); } }
+    @keyframes sd-line    { from { transform: translateY(105%); } to { transform: none; } }
+    @keyframes sd-count   { from { --n: 0; } to { --n: var(--to); } }
+    @keyframes sd-progress{ from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @keyframes sd-shadow  { to { box-shadow: 0 6px 24px -12px rgba(17,17,17,.18); } }
+    @keyframes sd-hero-img{ from { transform: translateY(0) scale(1.08); } to { transform: translateY(30vh) scale(1.18); } }
+    @keyframes sd-hero-txt{ to { transform: translateY(18vh); opacity: 0; } }
+    @keyframes sd-marquee { from { transform: translateX(0); } to { transform: translateX(-45%); } }
+    @keyframes sd-marquee-rev { from { transform: translateX(-45%); } to { transform: translateX(0); } }
+    @keyframes sd-card    { from { opacity: .35; transform: scale(.9); } to { opacity: 1; transform: none; } }
+
+    @supports (animation-timeline: view()) {
+      @media (prefers-reduced-motion: no-preference) {
+
+        /* Появление блоков: прогресс = насколько элемент въехал в экран */
+        .reveal {
+          opacity: 1; transform: none; transition: none;
+          animation: sd-up linear both;
+          animation-timeline: view();
+          animation-range: entry calc(var(--i, 0) * 6%) cover calc(25% + var(--i, 0) * 6%);
+        }
+        .reveal.from-right { animation-name: sd-right; }
+
+        /* Фото: шторка открывается по мере прокрутки, внутри — параллакс */
+        .reveal-mask {
+          clip-path: none; transition: none;
+          animation: sd-mask linear both;
+          animation-timeline: view();
+          animation-range: entry calc(var(--i, 0) * 6%) cover calc(40% + var(--i, 0) * 6%);
+        }
+        .reveal-mask img {
+          transition: none;
+          animation: sd-img-y linear both;
+          animation-timeline: view();
+          animation-range: cover 0% cover 100%;
+        }
+
+        /* Заголовок манифеста — строки выезжают по скроллу */
+        .split-line > span {
+          transform: none; transition: none;
+          animation: sd-line linear both;
+          animation-timeline: view();
+          animation-range: entry calc(30% + var(--i, 0) * 15%) cover calc(30% + var(--i, 0) * 8%);
+        }
+
+        /* Счётчики: целое --n анимируется скроллом и выводится через counter() */
+        [data-count] {
+          animation: sd-count linear both;
+          animation-timeline: view();
+          animation-range: entry 40% cover 45%;
+          counter-reset: n var(--n);
+        }
+        [data-count]::after { content: counter(n); }
+
+        /* Hero: параллакс фото и уход слогана — по прокрутке страницы */
+        #heroImg {
+          animation: sd-hero-img linear both;
+          animation-timeline: scroll(root);
+          animation-range: 0 100vh;
+        }
+        #heroContent {
+          animation: sd-hero-txt linear both;
+          animation-timeline: scroll(root);
+          animation-range: 0 70vh;
+        }
+
+        /* Полоса прогресса и тень шапки */
+        #scrollProgress { animation: sd-progress linear both; animation-timeline: scroll(root); }
+        #header { transition: none; animation: sd-shadow linear both; animation-timeline: scroll(root); animation-range: 0 80px; }
+
+        /* Бегущая строка, которая едет вместе со скроллом */
+        .marquee     { animation: sd-marquee linear both;     animation-timeline: view(); animation-range: cover 0% cover 100%; }
+        .marquee.rev { animation-name: sd-marquee-rev; }
+
+        /* Лукбук: трек — горизонтальный scroll-контейнер, поэтому вертикальное
+           появление берём из именованного таймлайна секции (--lb) */
+        #lookbook { view-timeline: --lb block; }
+        #lookbook .reveal-mask, #lookbook .reveal {
+          animation-timeline: --lb;
+          animation-range: entry calc(20% + var(--i, 0) * 10%) cover calc(45% + var(--i, 0) * 8%);
+        }
+        /* …а при свайпе ленты фото внутри рамки двигаются горизонтально */
+        #lookbook .reveal-mask img { animation-name: sd-img-x; animation-timeline: view(inline); }
+        /* и сами образы слегка «вырастают» у центра ленты */
+        #lookbook figure {
+          animation: sd-card linear both;
+          animation-timeline: view(inline);
+          animation-range: entry 0% entry 100%;
+        }
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal-mask, .reveal-mask img, .split-line > span { opacity: 1 !important; transform: none !important; clip-path: none !important; transition: none !important; }
+      .fade-in { animation: none; }
+    }
+  </style>
+</head>
+
+<body class="bg-cream text-ink font-sans">
+  <div id="scrollProgress" aria-hidden="true"></div>
+
+  <!-- ===================== ANNOUNCEMENT BAR ===================== -->
+  <div class="bg-ink text-milk text-[11px] tracking-widest2 uppercase text-center py-2 px-4">
+    Бесплатная доставка от 10 000 ₽ · Примерка перед оплатой
+  </div>
+
+  <!-- ===================== HEADER ===================== -->
+  <header id="header" class="sticky top-0 z-40 bg-cream/90 backdrop-blur border-b border-line">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
+      <!-- Левая часть: бургер (моб) + лого -->
+      <div class="flex items-center gap-3">
+        <button id="menuBtn" class="lg:hidden -ml-1 p-2" aria-label="Открыть меню">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+        </button>
+        <a href="#top" class="logo-spin font-serif text-2xl sm:text-3xl tracking-[0.2em] font-medium" aria-label="MONTE">
+          <span aria-hidden="true" style="--k:0">M</span><span aria-hidden="true" style="--k:1">O</span><span aria-hidden="true" style="--k:2">N</span><span aria-hidden="true" style="--k:3">T</span><span aria-hidden="true" style="--k:4">E</span>
+        </a>
+      </div>
+
+      <!-- Навигация по центру -->
+      <nav class="hidden lg:flex justify-center gap-5 lg:gap-8 whitespace-nowrap text-[12px] lg:text-[13px] uppercase tracking-[0.15em]">
+        <a href="#catalog" class="link-underline">Каталог</a>
+        <a href="#about" class="link-underline">О бренде</a>
+        <a href="#lookbook" class="link-underline">Лукбук</a>
+        <a href="#contacts" class="link-underline">Контакты</a>
+        <a href="#catalog" data-goto-sale class="link-underline text-sale font-semibold">Sale</a>
+        <a href="tryon.html" class="inline-flex items-center gap-1.5 -my-1 px-3 py-1 rounded-full bg-ink text-milk hover:bg-graphite transition">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 8.5A2.5 2.5 0 015.5 6h1.6l1.4-2h7l1.4 2h1.6A2.5 2.5 0 0121 8.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5v-9z"/><circle cx="12" cy="13" r="3.6"/></svg>
+          Примерка
+        </a>
+      </nav>
+
+      <!-- Поиск и корзина -->
+      <div class="col-start-3 flex justify-end items-center gap-1 sm:gap-3">
+        <a href="tryon.html" class="lg:hidden p-2" aria-label="Виртуальная примерка через камеру">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8.5A2.5 2.5 0 015.5 6h1.6l1.4-2h7l1.4 2h1.6A2.5 2.5 0 0121 8.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5v-9z"/><circle cx="12" cy="13" r="3.6"/></svg>
+        </a>
+        <button id="searchBtn" class="p-2" aria-label="Поиск">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </button>
+        <button id="cartBtn" class="relative p-2" aria-label="Корзина">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8h14l-1.2 12H6.2L5 8z"/><path d="M9 8V6a3 3 0 016 0v2"/></svg>
+          <span id="cartCount" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-ink text-milk text-[10px] leading-[18px] text-center hidden">0</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Поисковая строка -->
+    <div id="searchBar" class="hidden border-t border-line bg-cream">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-stone shrink-0"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="searchInput" type="search" maxlength="60" placeholder="Поиск: пальто, кашемир, футболка…" class="w-full bg-transparent outline-none text-base placeholder:text-stone" />
+        <button id="searchClose" class="text-xs uppercase tracking-widest text-stone hover:text-ink">Закрыть</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Мобильное меню -->
+  <div id="mobileMenu" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-ink/40" data-close-menu></div>
+    <aside class="absolute left-0 top-0 h-full w-[80%] max-w-xs bg-cream p-6 flex flex-col fade-in">
+      <div class="flex justify-between items-center mb-10">
+        <span class="font-serif text-2xl tracking-[0.2em]">MONTE</span>
+        <button data-close-menu aria-label="Закрыть меню" class="p-2 -mr-2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <nav class="flex flex-col gap-6 font-serif text-3xl">
+        <a href="#catalog" data-close-menu>Каталог</a>
+        <a href="#about" data-close-menu>О бренде</a>
+        <a href="#lookbook" data-close-menu>Лукбук</a>
+        <a href="#contacts" data-close-menu>Контакты</a>
+        <a href="#catalog" data-close-menu data-goto-sale class="text-sale">Sale</a>
+        <a href="tryon.html" class="italic">Примерка онлайн</a>
+      </nav>
+      <p class="mt-auto text-xs text-stone tracking-widest uppercase">Тула · с 2019</p>
+    </aside>
+  </div>
+
+  <main id="top">
+
+    <!-- ===================== HERO ===================== -->
+    <section class="relative h-[88vh] min-h-[560px] overflow-hidden img-fallback">
+      <img id="heroImg"
+        src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=2000&q=80"
+        alt="Коллекция MONTE на вешалках"
+        class="absolute inset-0 w-full h-full object-cover object-center"
+        onerror="this.style.display='none'" />
+      <div class="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/20 to-transparent"></div>
+
+      <div id="heroContent" class="relative h-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col justify-end pb-16 sm:pb-24 text-milk">
+        <p class="text-[11px] sm:text-xs uppercase tracking-widest2 mb-4 fade-in">Коллекция Осень — Зима 2026</p>
+        <h1 class="font-serif text-5xl sm:text-7xl lg:text-8xl leading-[0.95] max-w-3xl fade-in">
+          Тишина —<br /><em class="font-normal">новая роскошь</em>
+        </h1>
+        <p class="mt-6 max-w-md text-sm sm:text-base text-milk/80 fade-in">
+          Вещи, которые не кричат. Кашемир, шерсть и хлопок, созданные служить годами.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3 fade-in">
+          <a href="#catalog" class="rounded-full bg-milk text-ink px-8 py-4 text-xs uppercase tracking-[0.2em] hover:bg-white transition">Смотреть каталог</a>
+          <a href="#lookbook" class="rounded-full border border-milk/60 px-8 py-4 text-xs uppercase tracking-[0.2em] hover:bg-milk hover:text-ink transition">New Drop</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ПРЕИМУЩЕСТВА ===================== -->
+    <section class="border-b border-line">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-6 py-8 text-center text-[11px] uppercase tracking-[0.2em] text-graphite">
+        <div class="reveal" style="--i:0">Натуральные ткани</div>
+        <div class="reveal" style="--i:1">Пошив в России</div>
+        <div class="reveal" style="--i:2">Возврат 30 дней</div>
+        <div class="reveal" style="--i:3">Доставка 1–3 дня</div>
+      </div>
+    </section>
+
+    <!-- ===================== БЕГУЩАЯ СТРОКА (scroll-driven) ===================== -->
+    <section class="marquee-wrap py-10 sm:py-16 border-b border-line select-none" aria-hidden="true">
+      <div class="marquee font-serif italic text-[16vw] sm:text-[11vw] leading-[1.05] whitespace-nowrap">
+        Quiet Essentials · Осень — Зима 2026 · Quiet Essentials ·
+      </div>
+      <div class="marquee rev font-serif text-[16vw] sm:text-[11vw] leading-[1.05] whitespace-nowrap text-transparent" style="-webkit-text-stroke: 1px #111;">
+        Кашемир · Шерсть · Хлопок · Кашемир · Шерсть · Хлопок ·
+      </div>
+    </section>
+
+    <!-- ===================== КАТАЛОГ ===================== -->
+    <section id="catalog" class="max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 scroll-mt-20">
+      <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-10">
+        <div class="reveal">
+          <p class="text-[11px] uppercase tracking-widest2 text-stone mb-3">Новая коллекция</p>
+          <h2 class="font-serif text-4xl sm:text-5xl">Бестселлеры сезона</h2>
+        </div>
+        <!-- Вкладки категорий -->
+        <div id="tabs" style="--i:1" class="reveal flex gap-6 overflow-x-auto no-scrollbar text-[12px] uppercase tracking-[0.15em] -mx-4 px-4 md:mx-0 md:px-0">
+          <button class="tab-btn active whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="all">Все</button>
+          <button class="tab-btn sale whitespace-nowrap pb-2 border-b border-transparent text-sale/70 hover:text-sale font-semibold transition" data-cat="sale">Sale</button>
+          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="top">Верх</button>
+          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="bottom">Низ</button>
+          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="outer">Верхняя одежда</button>
+          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="shoes">Кроссовки</button>
+          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="hats">Головные уборы</button>
+          <button class="tab-btn whitespace-nowrap pb-2 border-b border-transparent text-stone hover:text-ink transition" data-cat="acc">Аксессуары</button>
+        </div>
+      </div>
+
+      <!-- Панель: результаты поиска + сортировка -->
+      <div class="flex flex-wrap items-center gap-3 mb-8">
+        <p id="searchInfo" class="hidden order-last w-full text-sm text-stone"></p>
+
+        <!-- Фильтр по полу -->
+        <div id="genderDropdown" data-dropdown class="relative z-30">
+          <button id="genderBtn" data-dd-btn type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="genderList" aria-label="Для кого"
+                  class="inline-flex items-center gap-3 h-11 pl-5 pr-4 rounded-full border border-line bg-cream hover:border-ink focus-visible:border-ink outline-none text-sm transition">
+            <span data-dd-label>Всем</span>
+            <svg data-dd-chevron class="transition-transform duration-300" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <ul id="genderList" role="listbox" tabindex="-1" aria-label="Для кого"
+              class="sort-list origin-top-left absolute left-0 mt-2 w-max min-w-full p-1.5 rounded-2xl bg-cream border border-line outline-none">
+            <li role="option" class="sort-opt" data-value="all" aria-selected="true">Всем</li>
+            <li role="option" class="sort-opt" data-value="w" aria-selected="false">Женщинам</li>
+            <li role="option" class="sort-opt" data-value="m" aria-selected="false">Мужчинам</li>
+          </ul>
+        </div>
+
+        <!-- Кастомный выпадающий список (нативный <select> нельзя скруглить) -->
+        <div id="sortDropdown" data-dropdown class="relative z-20 ml-auto">
+          <button id="sortBtn" data-dd-btn type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="sortList"
+                  class="inline-flex items-center gap-3 h-11 pl-5 pr-4 rounded-full border border-line bg-cream hover:border-ink focus-visible:border-ink outline-none text-sm transition">
+            <span class="text-stone hidden sm:inline">Сортировка:</span>
+            <span id="sortLabel" data-dd-label>Порядок: по умолчанию</span>
+            <svg id="sortChevron" data-dd-chevron class="transition-transform duration-300" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <ul id="sortList" role="listbox" tabindex="-1" aria-label="Сортировка товаров"
+              class="sort-list absolute right-0 mt-2 w-max min-w-full p-1.5 rounded-2xl bg-cream border border-line outline-none">
+            <li role="option" class="sort-opt" data-value="default" aria-selected="true">Порядок: по умолчанию</li>
+            <li role="option" class="sort-opt" data-value="price-asc" aria-selected="false">Цена: по возрастанию</li>
+            <li role="option" class="sort-opt" data-value="price-desc" aria-selected="false">Цена: по убыванию</li>
+            <li role="option" class="sort-opt" data-value="name-asc" aria-selected="false">Название: А—Я</li>
+            <li role="option" class="sort-opt" data-value="name-desc" aria-selected="false">Название: Я—А</li>
+            <li role="option" class="sort-opt" data-value="newest" aria-selected="false">Порядок: сперва новые</li>
+            <li role="option" class="sort-opt" data-value="oldest" aria-selected="false">Порядок: сперва старые</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="productGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-12 sm:gap-x-6"></div>
+
+      <p id="emptyState" class="hidden text-center text-stone py-16">Ничего не найдено. Попробуйте другой запрос.</p>
+    </section>
+
+    <!-- ===================== МАНИФЕСТ ===================== -->
+    <section id="about" class="bg-milk scroll-mt-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 grid md:grid-cols-2 gap-12 md:gap-20 items-center">
+        <div class="reveal-mask relative aspect-[4/5] overflow-hidden img-fallback order-2 md:order-1">
+          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80"
+               alt="Ателье MONTE" class="w-full h-full object-cover" loading="lazy" onerror="this.style.display='none'" />
+        </div>
+        <div class="order-1 md:order-2">
+          <p class="reveal text-[11px] uppercase tracking-widest2 text-stone mb-6">Манифест</p>
+          <h2 class="reveal-lines font-serif text-4xl sm:text-5xl lg:text-6xl leading-tight mb-8">
+            <span class="split-line"><span>Меньше вещей.</span></span>
+            <span class="split-line"><span style="--i:1"><em>Больше смысла.</em></span></span>
+          </h2>
+          <div class="reveal space-y-5 text-graphite leading-relaxed max-w-lg" style="--i:2">
+            <p>MONTE появился в 2019 году из простой идеи: гардероб не должен обновляться каждый сезон. Мы создаём базовые вещи, которые сочетаются друг с другом и остаются актуальными годами.</p>
+            <p>Мы работаем с итальянскими и японскими фабриками тканей, отшиваем небольшими партиями и не устраиваем бесконечных акций. Скидки бывают только в конце сезона и только на последние размеры коллекции — чтобы вещи нашли своих владельцев, а не пылились на складе.</p>
+          </div>
+          <div class="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-line">
+            <div class="reveal" style="--i:3"><div class="font-serif text-4xl"><span data-count="100" style="--to:100">0</span>%</div><div class="text-[11px] uppercase tracking-[0.15em] text-stone mt-1">Натуральные волокна</div></div>
+            <div class="reveal" style="--i:4"><div class="font-serif text-4xl" data-count="12" style="--to:12">0</div><div class="text-[11px] uppercase tracking-[0.15em] text-stone mt-1">Мастеров в ателье</div></div>
+            <div class="reveal" style="--i:5"><div class="font-serif text-4xl" data-count="30" style="--to:30">30</div><div class="text-[11px] uppercase tracking-[0.15em] text-stone mt-1">Дней на возврат</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ЛУКБУК ===================== -->
+    <section id="lookbook" class="py-20 sm:py-28 scroll-mt-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 flex items-end justify-between mb-10">
+        <div class="reveal">
+          <p class="text-[11px] uppercase tracking-widest2 text-stone mb-3">Лукбук · @monte.studio</p>
+          <h2 class="font-serif text-4xl sm:text-5xl">Образы сезона</h2>
+        </div>
+        <div class="reveal from-right hidden sm:flex gap-2" style="--i:1">
+          <button id="lbPrev" class="w-12 h-12 rounded-full border border-ink flex items-center justify-center hover:bg-ink hover:text-milk transition" aria-label="Назад">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <button id="lbNext" class="w-12 h-12 rounded-full border border-ink flex items-center justify-center hover:bg-ink hover:text-milk transition" aria-label="Вперёд">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="lookbookTrack" class="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar px-4 sm:px-6 lg:px-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))] scroll-smooth"></div>
+    </section>
+
+    <!-- ===================== ПОДПИСКА ===================== -->
+    <section class="bg-ink text-milk">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center">
+        <p class="reveal text-[11px] uppercase tracking-widest2 text-milk/60 mb-4">Рассылка</p>
+        <h2 class="reveal font-serif text-4xl sm:text-5xl mb-4" style="--i:1">Первыми о новых дропах</h2>
+        <p class="reveal text-milk/70 text-sm mb-8" style="--i:2">Письмо раз в месяц. Без спама — только новые коллекции и закрытые предпоказы.</p>
+        <form id="newsletterForm" style="--i:3" class="reveal flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+          <input id="newsletterEmail" type="email" required maxlength="120" autocomplete="email" placeholder="Ваш e-mail"
+                 class="flex-1 rounded-full bg-transparent border border-milk/40 px-6 py-4 text-sm outline-none focus:border-milk placeholder:text-milk/50" />
+          <button class="rounded-full bg-milk text-ink px-8 py-4 text-xs uppercase tracking-[0.2em] hover:bg-white transition">Подписаться</button>
+        </form>
+        <p id="newsletterMsg" class="hidden mt-4 text-sm text-milk/80">Спасибо! Вы подписаны на рассылку MONTE.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer id="contacts" class="bg-cream border-t border-line scroll-mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-16 grid grid-cols-2 md:grid-cols-4 gap-10 text-sm">
+      <div class="reveal col-span-2 md:col-span-1">
+        <div class="font-serif text-3xl tracking-[0.2em] mb-4">MONTE</div>
+        <p class="text-stone leading-relaxed max-w-xs">Тихая роскошь на каждый день. Сделано с уважением к людям и материалам.</p>
+      </div>
+      <div class="reveal" style="--i:1">
+        <h4 class="text-[11px] uppercase tracking-[0.2em] mb-4">Покупателям</h4>
+        <ul class="space-y-2 text-graphite">
+          <li><a href="#" class="link-underline" data-info="delivery">Доставка и оплата</a></li>
+          <li><a href="#" class="link-underline" data-info="returns">Обмен и возврат</a></li>
+          <li><a href="#" class="link-underline" data-size-guide>Таблица размеров</a></li>
+          <li><a href="#" class="link-underline" data-info="privacy">Политика конфиденциальности</a></li>
+        </ul>
+      </div>
+      <div class="reveal" style="--i:2">
+        <h4 class="text-[11px] uppercase tracking-[0.2em] mb-4">Контакты</h4>
+        <ul class="space-y-2 text-graphite">
+          <li><a href="tel:+74872000000" class="link-underline">+7 (4872) 00-00-00</a></li>
+          <li><a href="mailto:hello@monte.store" class="link-underline">hello@monte.store</a></li>
+          <li class="text-stone">Тула, проспект Ленина, 97</li>
+          <li class="text-stone">Ежедневно 11:00 — 21:00</li>
+        </ul>
+      </div>
+      <div class="reveal" style="--i:3">
+        <h4 class="text-[11px] uppercase tracking-[0.2em] mb-4">Соцсети</h4>
+        <ul class="space-y-2 text-graphite">
+          <li><a href="#" class="link-underline">Instagram</a></li>
+          <li><a href="#" class="link-underline">Telegram</a></li>
+          <li><a href="#" class="link-underline">VK</a></li>
+          <li><a href="#" class="link-underline">Pinterest</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-line">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row justify-between gap-2 text-xs text-stone">
+        <span>© <span id="year"></span> MONTE. Все права защищены.</span>
+        <span>Демо-сайт. Оплата не производится.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===================== QUICK VIEW MODAL ===================== -->
+  <div id="productModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-ink/50" data-close-modal></div>
+    <div class="relative h-full w-full flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
+      <div class="pointer-events-auto bg-cream w-full sm:max-w-4xl max-h-[92vh] overflow-y-auto grid sm:grid-cols-2 fade-in">
+        <div class="relative aspect-[4/5] sm:aspect-auto img-fallback">
+          <img id="mImg" src="" alt="" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'" />
+        </div>
+        <div class="p-6 sm:p-10 flex flex-col">
+          <div class="flex justify-between items-start gap-4">
+            <p id="mCat" class="text-[11px] uppercase tracking-widest2 text-stone"></p>
+            <button data-close-modal class="-mt-2 -mr-2 p-2" aria-label="Закрыть">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <h3 id="mName" class="font-serif text-3xl sm:text-4xl mt-2"></h3>
+          <p id="mPrice" class="text-lg mt-2"></p>
+          <p id="mDesc" class="text-graphite text-sm leading-relaxed mt-6"></p>
+
+          <dl class="mt-6 text-sm border-t border-line divide-y divide-line">
+            <div class="flex justify-between py-3"><dt class="text-stone">Для кого</dt><dd id="mGender" class="text-right"></dd></div>
+            <div class="flex justify-between py-3"><dt class="text-stone">Состав</dt><dd id="mFabric" class="text-right"></dd></div>
+            <div class="flex justify-between py-3"><dt class="text-stone">Уход</dt><dd id="mCare" class="text-right"></dd></div>
+            <div class="flex justify-between py-3"><dt class="text-stone">Производство</dt><dd id="mMade" class="text-right"></dd></div>
+          </dl>
+
+          <div class="mt-6">
+            <div class="flex justify-between items-baseline gap-3 text-[11px] uppercase tracking-[0.15em] mb-3">
+              <span>Размер <span id="mSizeHint" class="ml-2 text-stone normal-case tracking-normal"></span></span>
+              <button type="button" id="mSizeGuide" data-size-guide="product"
+                      class="inline-flex items-center gap-1.5 normal-case tracking-normal text-xs text-graphite underline underline-offset-4 hover:text-ink">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7v4M10 7v3M14 7v4M18 7v3"/></svg>
+                Таблица размеров
+              </button>
+            </div>
+            <div id="mSizes" class="grid grid-cols-4 gap-2"></div>
+          </div>
+
+          <div class="mt-6 flex items-center gap-3">
+            <div class="flex items-center border border-line rounded-full overflow-hidden">
+              <button id="mQtyMinus" class="w-10 h-12 hover:bg-milk" aria-label="Меньше">−</button>
+              <span id="mQty" class="w-8 text-center">1</span>
+              <button id="mQtyPlus" class="w-10 h-12 hover:bg-milk" aria-label="Больше">+</button>
+            </div>
+            <button id="mAdd" class="flex-1 h-12 rounded-full bg-ink text-milk text-xs uppercase tracking-[0.2em] hover:bg-graphite transition">В корзину</button>
+          </div>
+          <p class="text-xs text-stone mt-4">Бесплатная примерка при доставке курьером.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CART DRAWER ===================== -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-ink/40" data-close-cart></div>
+    <aside class="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-cream flex flex-col fade-in">
+      <div class="flex justify-between items-center px-6 h-16 border-b border-line">
+        <h3 class="text-[12px] uppercase tracking-[0.2em]">Корзина (<span id="cartCountInner">0</span>)</h3>
+        <button data-close-cart class="p-2 -mr-2" aria-label="Закрыть корзину">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+
+      <!-- Прогресс бесплатной доставки -->
+      <div class="px-6 py-4 border-b border-line">
+        <p id="shipText" class="text-xs text-graphite mb-2"></p>
+        <div class="h-[3px] bg-line"><div id="shipBar" class="h-full bg-ink transition-all duration-500" style="width:0%"></div></div>
+      </div>
+
+      <div id="cartItems" class="flex-1 overflow-y-auto px-6 divide-y divide-line"></div>
+
+      <div id="cartEmpty" class="flex-1 flex-col items-center justify-center text-center px-6 hidden">
+        <p class="font-serif text-3xl mb-2">Корзина пуста</p>
+        <p class="text-sm text-stone mb-6">Самое время выбрать что-то особенное.</p>
+        <button data-close-cart data-goto-catalog class="rounded-full border border-ink px-8 py-3 text-xs uppercase tracking-[0.2em] hover:bg-ink hover:text-milk transition">В каталог</button>
+      </div>
+
+      <div id="cartFooter" class="border-t border-line px-6 py-6 space-y-3">
+        <div class="flex justify-between text-sm"><span class="text-stone">Товары</span><span id="cartSubtotal">0 ₽</span></div>
+        <div class="flex justify-between text-sm"><span class="text-stone">Доставка</span><span id="cartShipping">—</span></div>
+        <div class="flex justify-between text-base font-medium pt-3 border-t border-line"><span>Итого</span><span id="cartTotal">0 ₽</span></div>
+        <button id="checkoutBtn" class="w-full h-12 rounded-full bg-ink text-milk text-xs uppercase tracking-[0.2em] hover:bg-graphite transition">Оформить заказ</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===================== ТАБЛИЦА РАЗМЕРОВ ===================== -->
+  <div id="sizeGuide" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-labelledby="sgTitle">
+    <div class="absolute inset-0 bg-ink/50" data-close-sg></div>
+    <div class="relative h-full flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
+      <div class="pointer-events-auto bg-cream w-full sm:max-w-3xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl fade-in">
+        <div class="sticky top-0 z-10 bg-cream/95 backdrop-blur px-5 sm:px-8 pt-5 sm:pt-7 pb-4 border-b border-line">
+          <div class="flex justify-between items-start gap-4">
+            <div>
+              <p class="text-[11px] uppercase tracking-widest2 text-stone">Подбор размера</p>
+              <h3 id="sgTitle" class="font-serif text-3xl sm:text-4xl mt-1">Таблица размеров</h3>
+            </div>
+            <button id="sgClose" type="button" data-close-sg class="p-2 -mr-2" aria-label="Закрыть таблицу размеров">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <div id="sgTabs" role="tablist" aria-label="Тип вещей" class="flex gap-2 overflow-x-auto no-scrollbar mt-4 -mx-5 px-5 sm:mx-0 sm:px-0"></div>
+        </div>
+        <div id="sgBody" class="px-5 sm:px-8 py-6"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== INFO MODAL (доставка/возврат/политика) ===================== -->
+  <div id="infoModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-ink/50" data-close-info></div>
+    <div class="relative h-full flex items-center justify-center p-4 pointer-events-none">
+      <div class="pointer-events-auto bg-cream max-w-lg w-full p-8 fade-in max-h-[85vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-4">
+          <h3 id="infoTitle" class="font-serif text-3xl"></h3>
+          <button data-close-info class="p-2 -mr-2 -mt-2" aria-label="Закрыть">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div id="infoBody" class="text-sm text-graphite leading-relaxed space-y-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TOAST ===================== -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-ink text-milk text-sm px-6 py-3 opacity-0 pointer-events-none transition-opacity duration-300 whitespace-nowrap"></div>
+
+  <!-- ===================== SCRIPT ===================== -->
+  <script>
+  (function () {
+    'use strict';
+
+    // ---------- ДАННЫЕ ----------
+    const U = (id, w = 900) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
+
+    const CATEGORIES = { top: 'Верх', bottom: 'Низ', outer: 'Верхняя одежда', shoes: 'Кроссовки', hats: 'Головные уборы', acc: 'Аксессуары' };
+    const SHOE_SIZES = ['39', '40', '41', '42', '43', '44'];
+
+    const PRODUCTS = [
+      { id: 1, name: 'Футболка Essential', cat: 'top', price: 4900, badge: 'Bestseller',
+        img: U('photo-1521572163474-6864f9cf17ab'),
+        desc: 'Плотная футболка свободного кроя с усиленной горловиной. Не теряет форму после десятков стирок.',
+        fabric: '100% органический хлопок, 240 г/м²', care: 'Стирка 30°, не отбеливать', made: 'Португалия' },
+      { id: 2, name: 'Худи Oversize', cat: 'top', price: 8900,
+        img: U('photo-1556821840-3a63f95609a7'),
+        desc: 'Объёмное худи с опущенным плечом и двойным капюшоном. Мягкий начёс внутри.',
+        fabric: '80% хлопок, 20% переработанный полиэстер', care: 'Стирка 30° наизнанку', made: 'Россия' },
+      { id: 3, name: 'Джемпер из кашемира', cat: 'top', price: 18900, badge: 'New',
+        img: U('photo-1576566588028-4147f3842f27'),
+        desc: 'Тонкий джемпер из монгольского кашемира с круглым вырезом. Идеален для многослойности.',
+        fabric: '100% кашемир, 2/26 Nm', care: 'Ручная стирка, сушить горизонтально', made: 'Италия' },
+      { id: 4, name: 'Рубашка Oxford', cat: 'top', price: 7900,
+        img: U('photo-1596755094514-f87e34085b2c'),
+        desc: 'Классическая рубашка с воротником на пуговицах. Ткань оксфорд мягчеет с каждой ноской.',
+        fabric: '100% хлопок оксфорд', care: 'Стирка 40°, гладить влажной', made: 'Турция' },
+      { id: 5, name: 'Брюки со стрелками', cat: 'bottom', price: 11900, badge: 'Bestseller',
+        img: U('photo-1594633312681-425c7b97ccd1'),
+        desc: 'Прямые брюки с высокой посадкой и заутюженными стрелками. Посадка по фигуре без жёсткости.',
+        fabric: '98% шерсть, 2% эластан', care: 'Химчистка', made: 'Италия' },
+      { id: 6, name: 'Джинсы Straight', cat: 'bottom', price: 9900,
+        img: U('photo-1542272604-787c3835535d'),
+        desc: 'Прямые джинсы из японского селвидж-денима. Садятся по фигуре и красиво стареют.',
+        fabric: '100% хлопок, селвидж-деним 13 oz', care: 'Стирать как можно реже, 30°', made: 'Япония' },
+      { id: 7, name: 'Пальто Classic', cat: 'outer', price: 34900, badge: 'New',
+        img: U('photo-1539533018447-63fcce2678e3'),
+        desc: 'Однобортное пальто прямого силуэта до середины икры. Подклад из купры.',
+        fabric: '90% шерсть, 10% кашемир', care: 'Только химчистка', made: 'Италия' },
+      { id: 8, name: 'Тренч Heritage', cat: 'outer', price: 27900,
+        img: U('photo-1591047139829-d91aecb6caea'),
+        desc: 'Двубортный тренч из водоотталкивающего габардина с поясом и погонами.',
+        fabric: '100% хлопок габардин', care: 'Химчистка', made: 'Португалия' },
+      { id: 9, name: 'Кожаная куртка', cat: 'outer', price: 42900,
+        img: U('photo-1551028719-00167b16eac5'),
+        desc: 'Куртка из мягкой кожи растительного дубления. Минималистичная фурнитура.',
+        fabric: '100% телячья кожа, подклад — вискоза', care: 'Профессиональная чистка кожи', made: 'Турция' },
+      { id: 10, name: 'Шарф из кашемира', cat: 'acc', price: 8900,
+        img: U('photo-1520903920243-00d872a2d1c9'),
+        desc: 'Большой шарф с бахромой. Тёплый, лёгкий, почти невесомый.',
+        fabric: '100% кашемир', care: 'Ручная стирка', made: 'Непал', oneSize: true },
+      { id: 11, name: 'Шопер Canvas', cat: 'acc', price: 3900,
+        img: U('photo-1590874103328-eac38a683ce7'),
+        desc: 'Вместительная сумка-шопер из плотного канваса с внутренним карманом.',
+        fabric: '100% хлопок канвас, 16 oz', care: 'Стирка 30°', made: 'Россия', oneSize: true },
+      { id: 12, name: 'Шапка-бини', cat: 'hats', price: 3500,
+        img: U('photo-1576871337622-98d48d1cf531'),
+        desc: 'Шапка английской резинки с отворотом. Плотная вязка, не колется.',
+        fabric: '100% шерсть мериноса', care: 'Ручная стирка 30°', made: 'Италия', oneSize: true },
+
+      // ---------- Кроссовки ----------
+      { id: 13, name: 'Кеды Court Leather', cat: 'shoes', price: 14900, badge: 'Bestseller', sizes: SHOE_SIZES,
+        img: U('photo-1608231387042-66d1773070a5'),
+        desc: 'Минималистичные кеды из гладкой кожи с перфорацией. Чистый силуэт, который подходит и к джинсам, и к брюкам со стрелками.',
+        fabric: 'Верх — натуральная кожа, подошва — каучук', care: 'Протирать влажной тканью, крем для кожи', made: 'Португалия' },
+      { id: 14, name: 'Кроссовки Runner Grey', cat: 'shoes', price: 12900, sizes: SHOE_SIZES,
+        img: U('photo-1460353581641-37baddab0fa2'),
+        desc: 'Лёгкие беговые кроссовки с дышащим сетчатым верхом и амортизирующей подошвой на каждый день.',
+        fabric: 'Верх — текстильная сетка, подошва — EVA и резина', care: 'Ручная чистка, не стирать в машине', made: 'Вьетнам' },
+      { id: 15, name: 'Кроссовки Retro Orange', cat: 'shoes', price: 13900, badge: 'New', sizes: SHOE_SIZES,
+        img: U('photo-1600185365483-26d7a4cc7519'),
+        desc: 'Ретро-силуэт 80-х: белая основа и тёплые оранжевые вставки. Единственный яркий акцент, который нужен образу.',
+        fabric: 'Верх — замша и текстиль, подошва — резина', care: 'Щётка для замши, водоотталкивающий спрей', made: 'Вьетнам' },
+      { id: 16, name: 'Кеды Tan Nubuck', cat: 'shoes', price: 16900, sizes: SHOE_SIZES,
+        img: U('photo-1549298916-b41d501d3772'),
+        desc: 'Кеды из мягкого нубука песочного оттенка. Тёплый цвет, который особенно хорош с шерстью и кашемиром.',
+        fabric: 'Верх — нубук, подкладка — кожа, подошва — каучук', care: 'Щётка для нубука, пропитка', made: 'Португалия' },
+      { id: 17, name: 'Кроссовки Shadow Black', cat: 'shoes', price: 11900, sizes: SHOE_SIZES,
+        img: U('photo-1491553895911-0055eca6402d'),
+        desc: 'Монохромные чёрные кроссовки с бесшовным трикотажным верхом. Сидят как носок, почти не ощущаются на ноге.',
+        fabric: 'Верх — трикотаж, подошва — вспененная резина', care: 'Ручная чистка мягкой щёткой', made: 'Вьетнам' },
+      { id: 18, name: 'Кроссовки Layer Sand', cat: 'shoes', price: 17900, badge: 'New', sizes: SHOE_SIZES,
+        img: U('photo-1560769629-975ec94e6a86'),
+        desc: 'Многослойный верх из сетки и замши в песочной гамме. Объёмная подошва и контрастные шнурки.',
+        fabric: 'Верх — замша и сетка, подошва — EVA', care: 'Щётка для замши, не стирать в машине', made: 'Индонезия' },
+      { id: 19, name: 'Кеды Classic White Low', cat: 'shoes', price: 13900, badge: 'Bestseller', sizes: SHOE_SIZES,
+        img: U('photo-1600269452121-4f2416e55c28'),
+        desc: 'Белые низкие кеды — база любого гардероба. Плотная кожа и прошитая подошва на долгие годы.',
+        fabric: 'Верх — натуральная кожа, подошва — резина', care: 'Протирать влажной тканью', made: 'Португалия' },
+      { id: 20, name: 'Кеды Night Low', cat: 'shoes', price: 13900, sizes: SHOE_SIZES,
+        img: U('photo-1543508282-6319a3e2621f'),
+        desc: 'Чёрные кожаные кеды с белыми акцентами. Практичная альтернатива белой паре для города и осени.',
+        fabric: 'Верх — натуральная кожа, подошва — резина', care: 'Протирать влажной тканью, крем для кожи', made: 'Португалия' },
+      { id: 21, name: 'Кроссовки Olive Suede', cat: 'shoes', price: 15900, badge: 'New', sizes: SHOE_SIZES,
+        img: U('photo-1539185441755-769473a23570'),
+        desc: 'Кроссовки из оливковой замши с сетчатыми вставками. Природный оттенок, который легко сочетать с бежевым и серым.',
+        fabric: 'Верх — замша и сетка, подошва — EVA и резина', care: 'Щётка для замши, водоотталкивающий спрей', made: 'Вьетнам' },
+      { id: 22, name: 'Кеды Skate Burgundy', cat: 'shoes', price: 9900, sizes: SHOE_SIZES,
+        img: U('photo-1525966222134-fcfa99b8ae77'),
+        desc: 'Низкие скейт-кеды из бордовой замши с белой подошвой. Глубокий винный цвет для осенних образов.',
+        fabric: 'Верх — замша и канвас, подошва — вулканизированная резина', care: 'Щётка для замши', made: 'Китай' },
+
+      // ---------- Верх ----------
+      { id: 23, name: 'Свитшот Essential', cat: 'top', price: 6900, badge: 'New',
+        img: U('photo-1620799140408-edc6dcb6d633'),
+        desc: 'Плотный свитшот с начёсом и мягкой резинкой на манжетах. Чистый силуэт без принтов.',
+        fabric: '100% хлопок футер, 340 г/м²', care: 'Стирка 30° наизнанку', made: 'Россия' },
+      { id: 24, name: 'Поло из пике', cat: 'top', price: 5900,
+        img: U('photo-1586363104862-3a5e2ab60d99'),
+        desc: 'Классическое поло из дышащего пике с трикотажным воротником. Держит форму после стирок.',
+        fabric: '100% хлопок пике', care: 'Стирка 30°, гладить с изнанки', made: 'Португалия' },
+      { id: 25, name: 'Рубашка Sky', cat: 'top', price: 8900,
+        img: U('photo-1620012253295-c15cc3e65df4'),
+        desc: 'Приталенная рубашка небесно-голубого цвета. Подходит и к костюму, и к чиносам.',
+        fabric: '100% хлопок поплин', care: 'Стирка 40°, гладить влажной', made: 'Турция' },
+      { id: 26, name: 'Свитер Terracotta', cat: 'top', price: 12900,
+        img: U('photo-1578587018452-892bacefd3f2'),
+        desc: 'Свободный свитер тёплого терракотового оттенка. Мягкая пряжа, которая не колется.',
+        fabric: '70% шерсть мериноса, 30% альпака', care: 'Ручная стирка, сушить горизонтально', made: 'Италия' },
+
+      // ---------- Низ ----------
+      { id: 27, name: 'Чиносы Relaxed', cat: 'bottom', price: 8900, badge: 'Bestseller',
+        img: U('photo-1473966968600-fa801b869a1a'),
+        desc: 'Чиносы свободного кроя с заниженным шаговым швом. Удобные на каждый день.',
+        fabric: '98% хлопок твил, 2% эластан', care: 'Стирка 30°', made: 'Турция' },
+      { id: 28, name: 'Джинсы Black Straight', cat: 'bottom', price: 10900,
+        img: U('photo-1624378439575-d8705ad7ae80'),
+        desc: 'Чёрные прямые джинсы из плотного денима, который не выцветает до серого.',
+        fabric: '100% хлопок, деним 12 oz', care: 'Стирка 30° наизнанку', made: 'Япония' },
+      { id: 29, name: 'Шорты джинсовые', cat: 'bottom', price: 5900, badge: 'New',
+        img: U('photo-1591195853828-11db59a44f6b'),
+        desc: 'Светлые джинсовые шорты с необработанным краем и высокой посадкой.',
+        fabric: '100% хлопок, деним 10 oz', care: 'Стирка 30°', made: 'Турция' },
+      { id: 30, name: 'Юбка-плиссе миди', cat: 'bottom', price: 9900,
+        img: U('photo-1577900232427-18219b9166a0'),
+        desc: 'Летящая юбка-плиссе длины миди на эластичном поясе. Плиссировка не расходится после стирки.',
+        fabric: '100% полиэстер (переработанный)', care: 'Деликатная стирка 30°, не гладить', made: 'Италия' },
+      { id: 31, name: 'Юбка Skater', cat: 'bottom', price: 7900,
+        img: U('photo-1583496661160-fb5886a0aaaa'),
+        desc: 'Короткая чёрная юбка-солнце с высокой талией. Держит объём без подъюбника.',
+        fabric: '65% вискоза, 35% полиэстер', care: 'Стирка 30°', made: 'Россия' },
+
+      // ---------- Верхняя одежда ----------
+      { id: 32, name: 'Пальто с поясом Camel', cat: 'outer', price: 32900, badge: 'New',
+        img: U('photo-1539533113208-f6df8cc8b543'),
+        desc: 'Пальто-халат цвета camel с запахом и поясом. Мягко ложится и не сковывает движений.',
+        fabric: '80% шерсть, 20% полиамид', care: 'Только химчистка', made: 'Италия' },
+      { id: 33, name: 'Дублёнка Aviator', cat: 'outer', price: 45900,
+        img: U('photo-1608063615781-e2ef8c73d114'),
+        desc: 'Укороченная дублёнка-авиатор с меховым воротником. Тёплая даже в сильный мороз.',
+        fabric: 'Натуральная овчина', care: 'Профессиональная чистка меха', made: 'Турция' },
+      { id: 34, name: 'Джинсовая куртка Sherpa', cat: 'outer', price: 16900,
+        img: U('photo-1544923246-77307dd654cb'),
+        desc: 'Джинсовая куртка-тракер с тёплой подкладкой из искусственной овчины.',
+        fabric: 'Верх — 100% хлопок деним, подкладка — полиэстер шерпа', care: 'Стирка 30° наизнанку', made: 'Турция' },
+      { id: 35, name: 'Джинсовая куртка Classic', cat: 'outer', price: 11900,
+        img: U('photo-1551537482-f2075a1d41f2'),
+        desc: 'Классическая джинсовая куртка прямого кроя. Носится круглый год.',
+        fabric: '100% хлопок, деним 12 oz', care: 'Стирка 30° наизнанку', made: 'Турция' },
+
+      // ---------- Головные уборы ----------
+      { id: 36, name: 'Кепка Washed Grey', cat: 'hats', price: 3900, badge: 'Bestseller',
+        img: U('photo-1521369909029-2afed882baee'),
+        desc: 'Кепка из состаренного хлопка с изогнутым козырьком и регулируемой застёжкой.',
+        fabric: '100% хлопок твил', care: 'Ручная стирка', made: 'Китай', oneSize: true },
+      { id: 37, name: 'Кепка White', cat: 'hats', price: 3500,
+        img: U('photo-1588850561407-ed78c282e89b'),
+        desc: 'Белая кепка с сетчатой спинкой. Лёгкая и дышащая для жаркого лета.',
+        fabric: 'Передняя часть — хлопок, спинка — полиэстер-сетка', care: 'Ручная стирка', made: 'Китай', oneSize: true },
+      { id: 38, name: 'Федора из фетра', cat: 'hats', price: 12900, badge: 'New',
+        img: U('photo-1514327605112-b887c0e61c0a'),
+        desc: 'Шляпа-федора из шерстяного фетра с лентой из грограна. Держит форму полей.',
+        fabric: '100% шерстяной фетр', care: 'Чистить щёткой, хранить в коробке', made: 'Италия' , sizes: ['56', '57', '58', '59'] },
+      { id: 39, name: 'Шляпа Straw', cat: 'hats', price: 7900,
+        img: U('photo-1572307480813-ceb0e59d8325'),
+        desc: 'Летняя соломенная шляпа с широкими полями и контрастной лентой.',
+        fabric: '100% бумажная солома', care: 'Не мочить, хранить в сухом месте', made: 'Эквадор', oneSize: true },
+      { id: 40, name: 'Кепка Denim', cat: 'hats', price: 4500,
+        img: U('photo-1534215754734-18e55d13e346'),
+        desc: 'Джинсовая кепка из выбеленного денима с вышитым логотипом сзади.',
+        fabric: '100% хлопок деним', care: 'Ручная стирка', made: 'Китай', oneSize: true },
+
+      // ---------- Аксессуары ----------
+      { id: 41, name: 'Очки Round', cat: 'acc', price: 9900, badge: 'New',
+        img: U('photo-1511499767150-a48a237f0083'),
+        desc: 'Круглые солнцезащитные очки в тонкой металлической оправе. Защита UV400.',
+        fabric: 'Оправа — сталь, линзы — поликарбонат', care: 'Протирать салфеткой из микрофибры', made: 'Италия', oneSize: true },
+      { id: 42, name: 'Ремень кожаный', cat: 'acc', price: 5900,
+        img: U('photo-1624222247344-550fb60583dc'),
+        desc: 'Ремень из толстой кожи растительного дубления с латунной пряжкой. С годами только красивее.',
+        fabric: 'Натуральная кожа, латунь', care: 'Крем для кожи раз в сезон', made: 'Россия', sizes: ['85', '90', '95', '100'] },
+      { id: 43, name: 'Сумка Top Handle', cat: 'acc', price: 19900, badge: 'Bestseller',
+        img: U('photo-1584917865442-de89df76afd3'),
+        desc: 'Сумка с верхней ручкой и съёмным ремнём. Вмещает телефон, кошелёк и косметичку.',
+        fabric: 'Натуральная кожа, подкладка — хлопок', care: 'Протирать сухой тканью', made: 'Италия', oneSize: true },
+      { id: 44, name: 'Цепочка с кулоном', cat: 'acc', price: 6900,
+        img: U('photo-1590548784585-643d2b9f2925'),
+        desc: 'Тонкая цепочка с подвеской. Её можно носить отдельно или вместе с другими цепочками.',
+        fabric: 'Серебро 925 с позолотой', care: 'Хранить отдельно, избегать воды', made: 'Россия', oneSize: true },
+      { id: 45, name: 'Шарф в полоску', cat: 'acc', price: 6500,
+        img: U('photo-1609803384069-19f3e5a70e75'),
+        desc: 'Мягкий шарф в тонкую полоску. Длины хватает, чтобы обернуть дважды.',
+        fabric: '50% шерсть, 50% вискоза', care: 'Ручная стирка', made: 'Италия', oneSize: true },
+      { id: 46, name: 'Кольцо с камнем', cat: 'acc', price: 8900,
+        img: U('photo-1608042314453-ae338d80c427'),
+        desc: 'Кольцо с натуральным камнем в гладкой оправе. Каждый камень уникален по рисунку.',
+        fabric: 'Серебро 925 с позолотой, сердолик', care: 'Избегать контакта с водой и парфюмом', made: 'Россия', sizes: ['16', '17', '18', '19'] }
+    ];
+
+    // ---------- SALE: id товара → скидка в % ----------
+    // Цена в PRODUCTS — исходная; здесь она превращается в oldPrice, а price становится ценой со скидкой.
+    const SALE = { 2: 30, 6: 20, 8: 25, 11: 30, 14: 30, 17: 40, 22: 30, 24: 25, 31: 35, 35: 20, 37: 30, 45: 25 };
+    PRODUCTS.forEach(p => {
+      const off = SALE[p.id];
+      if (!off) return;
+      p.sale = off;
+      p.oldPrice = p.price;
+      p.price = Math.round(p.price * (1 - off / 100) / 100) * 100; // округление до 100 ₽
+    });
+
+    // ---------- Пол: id товаров для женщин и мужчин; все остальные — унисекс ----------
+    // Унисекс-вещи показываются и в «Женщинам», и в «Мужчинам».
+    const GENDER = {
+      w: [5, 7, 11, 15, 18, 26, 29, 30, 31, 32, 33, 38, 39, 43, 44, 46],
+      m: [4, 9, 14, 16, 17, 20, 24, 25, 27, 28, 34, 35, 40, 42]
+    };
+    PRODUCTS.forEach(p => {
+      p.gender = GENDER.w.includes(p.id) ? 'w' : GENDER.m.includes(p.id) ? 'm' : 'u';
+    });
+    const GENDER_LABEL = { w: 'Женщинам', m: 'Мужчинам', u: 'Унисекс — женщинам и мужчинам' };
+
+    const LOOKBOOK = [
+      { img: U('photo-1509631179647-0177331693ae', 800), title: 'Look 01 — Утро в городе' },
+      { img: U('photo-1469334031218-e382a71b716b', 800), title: 'Look 02 — Кашемир и камень' },
+      { img: U('photo-1483985988355-763728e1935b', 800), title: 'Look 03 — Выходные' },
+      { img: U('photo-1539109136881-3be0616acf4b', 800), title: 'Look 04 — Тёплый минимал' },
+      { img: U('photo-1503342217505-b0a15ec3261c', 800), title: 'Look 05 — Монохром' },
+      { img: U('photo-1434389677669-e08b4cac3105', 800), title: 'Look 06 — Слои' }
+    ];
+
+    const SIZES = ['S', 'M', 'L', 'XL'];
+    const FREE_SHIPPING = 10000;
+    const SHIPPING_COST = 500;
+    const STORAGE_KEY = 'norde_cart_v1';
+
+    // ---------- УТИЛИТЫ ----------
+    const $ = (s, el = document) => el.querySelector(s);
+    const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+    const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
+    const byId = id => PRODUCTS.find(p => p.id === id);
+    const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    let toastTimer;
+    function toast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.style.opacity = '1';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => (t.style.opacity = '0'), 2200);
+    }
+
+    function lockScroll(lock) { document.body.classList.toggle('locked', lock); }
+
+    // ---------- SCROLL-АНИМАЦИИ ----------
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const REVEAL_SELECTOR = '.reveal, .reveal-mask, .reveal-lines';
+    // Нативные scroll-driven animations? Тогда всё делает CSS, а JS — только фолбэк.
+    const scrollDriven = !reduceMotion && !!(window.CSS && CSS.supports && CSS.supports('animation-timeline: view()'));
+    if (scrollDriven) document.documentElement.classList.add('sd');
+
+    // Плавный счётчик чисел (100%, 12 мастеров)
+    function animateCount(el) {
+      const target = +el.dataset.count;
+      if (reduceMotion) { el.textContent = target; return; }
+      const start = performance.now(), dur = 1600;
+      const tick = now => {
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(target * eased);
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+
+    function showEl(el) {
+      el.classList.add('is-visible');
+      $$('[data-count]', el).forEach(c => { if (!c.dataset.done) { c.dataset.done = '1'; animateCount(c); } });
+    }
+
+    const revealObserver = ('IntersectionObserver' in window && !reduceMotion)
+      ? new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            showEl(entry.target);
+            revealObserver.unobserve(entry.target); // анимация срабатывает один раз
+          });
+        }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' })
+      : null;
+
+    function observeReveals(root) {
+      if (scrollDriven) return; // анимации привязаны к скроллу в CSS
+      $$(REVEAL_SELECTOR, root).forEach(el => {
+        if (el.classList.contains('is-visible')) return;
+        if (revealObserver) revealObserver.observe(el);
+        else showEl(el); // фолбэк: старые браузеры или «уменьшение движения»
+      });
+    }
+
+    // Параллакс hero, тень шапки, прогресс прокрутки
+    function initScrollEffects() {
+      if (scrollDriven) {
+        // Счётчики выводит CSS через counter(), поэтому текст-заглушку убираем
+        $$('[data-count]').forEach(el => (el.textContent = ''));
+        return;
+      }
+      const header = $('#header');
+      const progress = $('#scrollProgress');
+      const heroImg = $('#heroImg');
+      const heroContent = $('#heroContent');
+      let ticking = false;
+
+      function update() {
+        const y = window.scrollY;
+        header.classList.toggle('scrolled', y > 10);
+
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.transform = `scaleX(${max > 0 ? y / max : 0})`;
+
+        if (!reduceMotion && y < window.innerHeight * 1.2) {
+          heroImg.style.transform = `translate3d(0, ${y * 0.3}px, 0) scale(1.08)`;
+          heroContent.style.transform = `translate3d(0, ${y * 0.15}px, 0)`;
+          heroContent.style.opacity = Math.max(0, 1 - y / (window.innerHeight * 0.7));
+        }
+        ticking = false;
+      }
+
+      window.addEventListener('scroll', () => {
+        if (!ticking) { requestAnimationFrame(update); ticking = true; }
+      }, { passive: true });
+      window.addEventListener('resize', update);
+      update();
+    }
+
+    // ---------- СОСТОЯНИЕ ----------
+    const state = {
+      category: 'all',
+      query: '',
+      sort: 'default',
+      gender: 'all',           // 'all' | 'w' | 'm'
+      cardSize: {},          // выбранный размер в карточке: { productId: 'M' }
+      cart: loadCart(),      // [{ id, size, qty }]
+      modal: { id: null, size: null, qty: 1 }
+    };
+
+    // Корзину из localStorage не доверяем: её мог изменить кто угодно с доступом к браузеру.
+    // Оставляем только существующие товары, допустимые размеры и количество 1–10.
+    function loadCart() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const data = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(data)) return [];
+        return data.slice(0, 50).map(i => {
+          const p = i && byId(Number(i.id));
+          if (!p) return null;
+          const allowed = p.oneSize ? ['One size'] : (p.sizes || SIZES);
+          const qty = Number(i.qty);
+          if (!allowed.includes(i.size) || !Number.isInteger(qty) || qty < 1 || qty > 10) return null;
+          return { id: p.id, size: i.size, qty };
+        }).filter(Boolean);
+      } catch (e) { return []; }
+    }
+    function saveCart() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cart)); } catch (e) { /* хранилище недоступно */ }
+    }
+
+    // ---------- КАТАЛОГ ----------
+    function sizeButtons(p, selected, attr) {
+      if (p.oneSize) {
+        return `<span class="col-span-4 text-xs text-stone py-2">Единый размер</span>`;
+      }
+      return (p.sizes || SIZES).map(s => `
+        <button type="button" class="size-btn rounded-full border border-line text-xs h-9 hover:border-ink transition ${selected === s ? 'active' : ''}"
+                ${attr}="${p.id}" data-size="${s}">${s}</button>`).join('');
+    }
+
+    // Мерчандайзинг: категории по порядку вкладок, внутри — New → Bestseller → без метки.
+    // При равенстве сохраняется исходный порядок массива (sort стабилен).
+    const CAT_ORDER = Object.keys(CATEGORIES);              // top, bottom, outer, acc
+    const BADGE_RANK = { 'New': 0, 'Bestseller': 1 };       // без метки = 2
+    const rank = p => BADGE_RANK[p.badge] ?? 2;
+    const SORTED = PRODUCTS.slice().sort((a, b) =>
+      (CAT_ORDER.indexOf(a.cat) - CAT_ORDER.indexOf(b.cat)) || (rank(a) - rank(b)));
+
+    // Пользовательская сортировка из выпадающего списка.
+    // «Новые/старые» — по порядку добавления в каталог (больший id = добавлен позже).
+    const SORTERS = {
+      'default':    null, // мерчандайзинговый порядок SORTED
+      'price-asc':  (a, b) => a.price - b.price,
+      'price-desc': (a, b) => b.price - a.price,
+      'name-asc':   (a, b) => a.name.localeCompare(b.name, 'ru'),
+      'name-desc':  (a, b) => b.name.localeCompare(a.name, 'ru'),
+      'newest':     (a, b) => b.id - a.id,
+      'oldest':     (a, b) => a.id - b.id
+    };
+
+    // 6 размеров обуви раскладываем 3+3, одежду (S–XL) — в один ряд из 4
+    const sizeCols = p => (!p.oneSize && (p.sizes || SIZES).length % 3 === 0 ? 'grid-cols-3' : 'grid-cols-4');
+
+    // Цена в карточке/модалке: со скидкой — красная новая и зачёркнутая старая
+    function priceHtml(p, large) {
+      const size = large ? 'text-lg' : 'text-sm';
+      if (!p.sale) return `<span class="${size} text-graphite">${fmt(p.price)}</span>`;
+      return `<span class="whitespace-nowrap"><span class="${size} text-sale font-semibold">${fmt(p.price)}</span>
+        <s class="${large ? 'text-sm' : 'text-xs'} text-stone ml-1.5">${fmt(p.oldPrice)}</s></span>`;
+    }
+
+    function filteredProducts() {
+      const q = state.query.trim().toLowerCase();
+      const list = SORTED.filter(p => {
+        const catOk = state.category === 'all'
+          || (state.category === 'sale' ? !!p.sale : p.cat === state.category);
+        if (state.gender !== 'all' && p.gender !== 'u' && p.gender !== state.gender) return false;
+        const qOk = !q || [p.name, p.desc, p.fabric, CATEGORIES[p.cat], p.sale ? 'sale скидка распродажа' : '']
+          .join(' ').toLowerCase().includes(q);
+        return catOk && qOk;
+      });
+      const sorter = SORTERS[state.sort];
+      return sorter ? list.sort(sorter) : list;
+    }
+
+    function renderProducts() {
+      const list = filteredProducts();
+      const grid = $('#productGrid');
+      grid.innerHTML = list.map(p => `
+        <article class="reveal group flex flex-col">
+          <button type="button" class="relative aspect-[3/4] overflow-hidden img-fallback block w-full" data-open="${p.id}" aria-label="Быстрый просмотр: ${escapeHtml(p.name)}">
+            <img src="${p.img}" alt="${escapeHtml(p.name)}" loading="lazy"
+                 class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                 onerror="this.style.display='none'" />
+            ${p.badge ? `<span class="absolute top-3 left-3 bg-cream text-ink text-[10px] uppercase tracking-[0.15em] px-2 py-1">${p.badge}</span>` : ''}
+            ${p.sale ? `<span class="absolute top-3 right-3 bg-sale text-white text-[10px] font-semibold tracking-[0.1em] px-2 py-1">−${p.sale}%</span>` : ''}
+            <span class="absolute bottom-0 inset-x-0 bg-cream/90 text-[11px] uppercase tracking-[0.15em] py-3 text-center translate-y-full group-hover:translate-y-0 transition duration-300 hidden sm:block">Быстрый просмотр</span>
+          </button>
+          <div class="pt-4 flex flex-col flex-1">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1">
+              <h3 class="text-sm cursor-pointer hover:underline" data-open="${p.id}">${escapeHtml(p.name)}</h3>
+              ${priceHtml(p)}
+            </div>
+            <p class="text-xs text-stone mt-1">${CATEGORIES[p.cat]}</p>
+            <div class="grid ${sizeCols(p)} gap-1.5 mt-3 mb-3">${sizeButtons(p, state.cardSize[p.id], 'data-card-size')}</div>
+            <button type="button" data-add="${p.id}"
+                    class="mt-auto h-10 rounded-full border border-ink text-[11px] uppercase tracking-[0.2em] hover:bg-ink hover:text-milk transition">
+              В корзину
+            </button>
+          </div>
+        </article>`).join('');
+
+      // Каскадная задержка: карточки в одном ряду появляются по очереди
+      $$('#productGrid article').forEach((el, i) => el.style.setProperty('--i', i % 4));
+      observeReveals(grid);
+
+      $('#emptyState').classList.toggle('hidden', list.length > 0);
+
+      const info = $('#searchInfo');
+      if (state.query.trim()) {
+        info.textContent = `Результаты по запросу «${state.query.trim()}»: ${list.length}`;
+        info.classList.remove('hidden');
+      } else {
+        info.classList.add('hidden');
+      }
+    }
+
+    // Делегирование событий в сетке
+    $('#productGrid').addEventListener('click', e => {
+      const sizeBtn = e.target.closest('[data-card-size]');
+      if (sizeBtn) {
+        const id = +sizeBtn.dataset.cardSize;
+        state.cardSize[id] = sizeBtn.dataset.size;
+        $$(`[data-card-size="${id}"]`).forEach(b => b.classList.toggle('active', b === sizeBtn));
+        return;
+      }
+      const addBtn = e.target.closest('[data-add]');
+      if (addBtn) {
+        const p = byId(+addBtn.dataset.add);
+        const size = p.oneSize ? 'One size' : state.cardSize[p.id];
+        if (!size) {
+          toast('Выберите размер');
+          const first = $(`[data-card-size="${p.id}"]`);
+          if (first) first.parentElement.animate(
+            [{ transform: 'translateX(0)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(0)' }],
+            { duration: 300 });
+          return;
+        }
+        addToCart(p.id, size, 1);
+        return;
+      }
+      const openEl = e.target.closest('[data-open]');
+      if (openEl) openModal(+openEl.dataset.open);
+    });
+
+    // Вкладки
+    $('#tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      state.category = btn.dataset.cat;
+      $$('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderProducts();
+    });
+
+    // Ссылки «Sale» в шапке и мобильном меню открывают вкладку Sale в каталоге
+    $$('[data-goto-sale]').forEach(a => a.addEventListener('click', () => {
+      const tab = $('.tab-btn[data-cat="sale"]');
+      if (tab) tab.click();
+    }));
+
+    // ---------- СОРТИРОВКА: кастомный выпадающий список ----------
+    // Общий компонент для всех [data-dropdown]: сортировка и «Для кого».
+    // root содержит [data-dd-btn], [data-dd-label], [data-dd-chevron] и ul[role=listbox] с li[role=option].
+    const dropdowns = [];
+    function initDropdown(root, onChoose) {
+      const btn = root.querySelector('[data-dd-btn]');
+      const list = root.querySelector('[role="listbox"]');
+      const opts = $$('[role="option"]', list);
+      const label = root.querySelector('[data-dd-label]');
+      const chevron = root.querySelector('[data-dd-chevron]');
+      let active = 0;
+
+      const isOpen = () => list.classList.contains('open');
+      const selectedIndex = () => Math.max(0, opts.findIndex(o => o.getAttribute('aria-selected') === 'true'));
+      const setActive = i => {
+        active = (i + opts.length) % opts.length;
+        opts.forEach((o, k) => o.classList.toggle('is-active', k === active));
+      };
+      const open = () => {
+        dropdowns.forEach(d => d !== api && d.close(false));   // одновременно открыт только один список
+        list.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+        chevron.style.transform = 'rotate(180deg)';
+        setActive(selectedIndex());
+        list.focus({ preventScroll: true });
+      };
+      const close = focusBtn => {
+        if (!isOpen()) return;
+        list.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        chevron.style.transform = '';
+        if (focusBtn) btn.focus({ preventScroll: true });
+      };
+      const choose = i => {
+        const opt = opts[i];
+        opts.forEach(o => o.setAttribute('aria-selected', String(o === opt)));
+        label.textContent = opt.textContent.trim();
+        close(true);
+        onChoose(opt.dataset.value);
+      };
+
+      btn.addEventListener('click', () => (isOpen() ? close(false) : open()));
+      btn.addEventListener('keydown', e => {
+        if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); }
+      });
+      list.addEventListener('keydown', e => {
+        switch (e.key) {
+          case 'ArrowDown': e.preventDefault(); setActive(active + 1); break;
+          case 'ArrowUp':   e.preventDefault(); setActive(active - 1); break;
+          case 'Home':      e.preventDefault(); setActive(0); break;
+          case 'End':       e.preventDefault(); setActive(opts.length - 1); break;
+          case 'Enter': case ' ': e.preventDefault(); choose(active); break;
+          case 'Escape':    e.preventDefault(); e.stopPropagation(); close(true); break;
+          case 'Tab':       close(false); break;
+        }
+      });
+      list.addEventListener('click', e => {
+        const opt = e.target.closest('[role="option"]');
+        if (opt) choose(opts.indexOf(opt));
+      });
+      list.addEventListener('mousemove', e => {
+        const opt = e.target.closest('[role="option"]');
+        if (opt) setActive(opts.indexOf(opt));
+      });
+      document.addEventListener('click', e => { if (!root.contains(e.target)) close(false); });
+
+      const api = { close };
+      dropdowns.push(api);
+      return api;
+    }
+
+    initDropdown($('#sortDropdown'), value => { state.sort = value; renderProducts(); });
+    initDropdown($('#genderDropdown'), value => { state.gender = value; renderProducts(); });
+
+    // ---------- ПОИСК ----------
+    const searchBar = $('#searchBar');
+    const searchInput = $('#searchInput');
+    $('#searchBtn').addEventListener('click', () => {
+      searchBar.classList.toggle('hidden');
+      if (!searchBar.classList.contains('hidden')) searchInput.focus();
+    });
+    $('#searchClose').addEventListener('click', () => {
+      searchBar.classList.add('hidden');
+      searchInput.value = '';
+      state.query = '';
+      renderProducts();
+    });
+    let searchDebounce;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        state.query = searchInput.value;
+        renderProducts();
+      }, 150);
+    });
+    searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+
+    // ---------- МОДАЛКА ТОВАРА ----------
+    const modal = $('#productModal');
+
+    function renderModalSizes() {
+      const p = byId(state.modal.id);
+      $('#mSizes').className = `grid ${sizeCols(p)} gap-2`;
+      $('#mSizes').innerHTML = sizeButtons(p, state.modal.size, 'data-modal-size').replace(/h-9/g, 'h-11');
+      $('#mSizeHint').textContent = p.oneSize ? '' : (state.modal.size ? `Выбран: ${state.modal.size}` : 'Не выбран');
+      // Таблица нужна всем вещам с размерами; кепкам/шляпам — чтобы проверить обхват головы
+      $('#mSizeGuide').classList.toggle('hidden', !!p.oneSize && p.cat !== 'hats');
+    }
+
+    function openModal(id) {
+      const p = byId(id);
+      state.modal = { id, size: state.cardSize[id] || null, qty: 1 };
+      const img = $('#mImg');
+      img.style.display = '';
+      img.src = p.img.replace('w=900', 'w=1200');
+      img.alt = p.name;
+      $('#mCat').textContent = CATEGORIES[p.cat];
+      $('#mName').textContent = p.name;
+      $('#mPrice').innerHTML = priceHtml(p, true);
+      $('#mDesc').textContent = p.desc;
+      $('#mFabric').textContent = p.fabric;
+      $('#mCare').textContent = p.care;
+      $('#mMade').textContent = p.made;
+      $('#mGender').textContent = GENDER_LABEL[p.gender];
+      $('#mQty').textContent = '1';
+      renderModalSizes();
+      modal.classList.remove('hidden');
+      lockScroll(true);
+    }
+    function closeModal() { modal.classList.add('hidden'); lockScroll(false); }
+
+    modal.addEventListener('click', e => {
+      if (e.target.closest('[data-close-modal]')) return closeModal();
+      const s = e.target.closest('[data-modal-size]');
+      if (s) { state.modal.size = s.dataset.size; renderModalSizes(); }
+    });
+    $('#mQtyMinus').addEventListener('click', () => {
+      state.modal.qty = Math.max(1, state.modal.qty - 1);
+      $('#mQty').textContent = state.modal.qty;
+    });
+    $('#mQtyPlus').addEventListener('click', () => {
+      state.modal.qty = Math.min(10, state.modal.qty + 1);
+      $('#mQty').textContent = state.modal.qty;
+    });
+    $('#mAdd').addEventListener('click', () => {
+      const p = byId(state.modal.id);
+      const size = p.oneSize ? 'One size' : state.modal.size;
+      if (!size) {
+        toast('Выберите размер');
+        $('#mSizeHint').classList.add('text-red-700');
+        setTimeout(() => $('#mSizeHint').classList.remove('text-red-700'), 1200);
+        return;
+      }
+      addToCart(p.id, size, state.modal.qty);
+      closeModal();
+    });
+
+    // ---------- КОРЗИНА ----------
+    const drawer = $('#cartDrawer');
+
+    function addToCart(id, size, qty) {
+      const existing = state.cart.find(i => i.id === id && i.size === size);
+      if (existing) existing.qty = Math.min(10, existing.qty + qty);
+      else state.cart.push({ id, size, qty });
+      saveCart();
+      renderCart();
+      toast(`${byId(id).name}${size !== 'One size' ? ' · ' + size : ''} — добавлено в корзину`);
+      const badge = $('#cartCount');
+      badge.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.4)' }, { transform: 'scale(1)' }], { duration: 300 });
+    }
+
+    function changeQty(index, delta) {
+      const item = state.cart[index];
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) state.cart.splice(index, 1);
+      else item.qty = Math.min(10, item.qty);
+      saveCart();
+      renderCart();
+    }
+
+    function removeItem(index) {
+      state.cart.splice(index, 1);
+      saveCart();
+      renderCart();
+    }
+
+    function totals() {
+      const count = state.cart.reduce((s, i) => s + i.qty, 0);
+      const subtotal = state.cart.reduce((s, i) => s + byId(i.id).price * i.qty, 0);
+      const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING ? 0 : SHIPPING_COST;
+      return { count, subtotal, shipping, total: subtotal + shipping };
+    }
+
+    function renderCart() {
+      const { count, subtotal, shipping, total } = totals();
+
+      const badge = $('#cartCount');
+      badge.textContent = count;
+      badge.classList.toggle('hidden', count === 0);
+      $('#cartCountInner').textContent = count;
+
+      const empty = state.cart.length === 0;
+      $('#cartEmpty').classList.toggle('hidden', !empty);
+      $('#cartEmpty').classList.toggle('flex', empty);
+      $('#cartItems').classList.toggle('hidden', empty);
+      $('#cartFooter').classList.toggle('hidden', empty);
+
+      $('#cartItems').innerHTML = state.cart.map((item, idx) => {
+        const p = byId(item.id);
+        return `
+          <div class="flex gap-4 py-5">
+            <div class="relative w-20 h-24 shrink-0 overflow-hidden img-fallback">
+              <img src="${p.img.replace('w=900', 'w=300')}" alt="${escapeHtml(p.name)}" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'" />
+            </div>
+            <div class="flex-1 flex flex-col min-w-0">
+              <div class="flex justify-between gap-2">
+                <p class="text-sm truncate">${escapeHtml(p.name)}</p>
+                <button data-remove="${idx}" class="text-stone hover:text-ink shrink-0" aria-label="Удалить">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+              </div>
+              <p class="text-xs text-stone mt-1">Размер: ${escapeHtml(item.size)}</p>
+              <div class="mt-auto flex justify-between items-center pt-3">
+                <div class="flex items-center border border-line rounded-full overflow-hidden">
+                  <button data-dec="${idx}" class="w-8 h-8 hover:bg-milk" aria-label="Меньше">−</button>
+                  <span class="w-7 text-center text-sm">${Number(item.qty)}</span>
+                  <button data-inc="${idx}" class="w-8 h-8 hover:bg-milk" aria-label="Больше">+</button>
+                </div>
+                <span class="text-sm">${fmt(p.price * item.qty)}</span>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      $('#cartSubtotal').textContent = fmt(subtotal);
+      $('#cartShipping').textContent = shipping === 0 ? 'Бесплатно' : fmt(shipping);
+      $('#cartTotal').textContent = fmt(total);
+
+      const left = FREE_SHIPPING - subtotal;
+      $('#shipText').textContent = left > 0
+        ? `До бесплатной доставки осталось ${fmt(left)}`
+        : 'Доставка бесплатна 🤍';
+      $('#shipBar').style.width = Math.min(100, (subtotal / FREE_SHIPPING) * 100) + '%';
+    }
+
+    $('#cartItems').addEventListener('click', e => {
+      const inc = e.target.closest('[data-inc]');
+      const dec = e.target.closest('[data-dec]');
+      const rem = e.target.closest('[data-remove]');
+      if (inc) changeQty(+inc.dataset.inc, 1);
+      else if (dec) changeQty(+dec.dataset.dec, -1);
+      else if (rem) removeItem(+rem.dataset.remove);
+    });
+
+    function openCart() { drawer.classList.remove('hidden'); lockScroll(true); }
+    function closeCart() { drawer.classList.add('hidden'); lockScroll(false); }
+    $('#cartBtn').addEventListener('click', openCart);
+    drawer.addEventListener('click', e => {
+      const c = e.target.closest('[data-close-cart]');
+      if (!c) return;
+      closeCart();
+      if (c.hasAttribute('data-goto-catalog')) document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // «Оформить заказ» → страница оплаты checkout.html.
+    // Состав корзины передаётся только через sessionStorage/localStorage. Через адрес (#order=…) — нельзя:
+    // такую ссылку можно подделать и подсунуть покупателю чужие товары и цены.
+    // Корзина очищается уже после успешной оплаты.
+    $('#checkoutBtn').addEventListener('click', () => {
+      if (!state.cart.length) return;
+      const order = {
+        items: state.cart.map(i => {
+          const p = byId(i.id);
+          return { id: p.id, name: p.name, img: p.img.replace('w=900', 'w=300'), size: i.size, qty: i.qty, price: p.price, oldPrice: p.oldPrice || null };
+        })
+      };
+      const json = JSON.stringify(order);
+      let stored = false;
+      for (const store of ['sessionStorage', 'localStorage']) {
+        try { window[store].setItem('monte_checkout', json); stored = true; } catch (e) { /* хранилище недоступно */ }
+      }
+      if (!stored) {
+        toast('Браузер блокирует хранилище данных — разрешите его, чтобы оформить заказ');
+        return;
+      }
+      location.href = 'checkout.html';
+    });
+
+    // ---------- ЛУКБУК ----------
+    function renderLookbook() {
+      $('#lookbookTrack').innerHTML = LOOKBOOK.map((l, i) => `
+        <figure class="snap-start shrink-0 w-[75%] sm:w-[45%] lg:w-[30%] group">
+          <div class="reveal-mask relative aspect-[3/4] overflow-hidden img-fallback" style="--i:${i % 3}">
+            <img src="${l.img}" alt="${escapeHtml(l.title)}" loading="lazy"
+                 class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                 onerror="this.style.display='none'" />
+            <div class="absolute inset-0 bg-ink/0 group-hover:bg-ink/20 transition"></div>
+          </div>
+          <figcaption class="reveal mt-3 text-xs uppercase tracking-[0.15em] text-graphite" style="--i:${(i % 3) + 2}">${escapeHtml(l.title)}</figcaption>
+        </figure>`).join('');
+      observeReveals($('#lookbookTrack'));
+    }
+    const track = $('#lookbookTrack');
+    const step = () => (track.firstElementChild ? track.firstElementChild.getBoundingClientRect().width + 16 : 300);
+    $('#lbPrev').addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
+    $('#lbNext').addEventListener('click', () => track.scrollBy({ left: step(), behavior: 'smooth' }));
+
+    // ---------- МОБИЛЬНОЕ МЕНЮ ----------
+    const menu = $('#mobileMenu');
+    $('#menuBtn').addEventListener('click', () => { menu.classList.remove('hidden'); lockScroll(true); });
+    menu.addEventListener('click', e => {
+      if (e.target.closest('[data-close-menu]')) { menu.classList.add('hidden'); lockScroll(false); }
+    });
+
+    // ---------- ИНФО-МОДАЛКА ----------
+    const INFO = {
+      delivery: ['Доставка и оплата', `
+        <p><strong>Курьером по Туле</strong> — 1–2 дня, с примеркой. Бесплатно от 10 000 ₽, иначе 500 ₽.</p>
+        <p><strong>Самовывоз из шоурума</strong> — бесплатно: Тула, проспект Ленина, 97. Ежедневно 11:00–21:00.</p>
+        <p><strong>По России</strong> — СДЭК и Почта России, 2–7 дней.</p>
+        <p>Оплата картой онлайн, СБП или при получении после примерки.</p>`],
+      returns: ['Обмен и возврат', `
+        <p>Вы можете вернуть или обменять товар в течение 30 дней с момента получения, если он не был в носке и сохранены бирки.</p>
+        <p>Деньги возвращаются на карту в течение 3–5 рабочих дней после получения возврата.</p>`],
+      privacy: ['Политика конфиденциальности', `
+        <p>Мы собираем только данные, необходимые для обработки заказа и рассылки: имя, телефон, e-mail и адрес доставки.</p>
+        <p>Данные не передаются третьим лицам, кроме служб доставки и платёжных систем. Вы можете запросить удаление своих данных, написав на hello@monte.store.</p>`]
+    };
+
+    const infoModal = $('#infoModal');
+    function openInfo(title, html) {
+      $('#infoTitle').textContent = title;
+      $('#infoBody').innerHTML = html;
+      infoModal.classList.remove('hidden');
+      lockScroll(true);
+    }
+    function closeInfo() { infoModal.classList.add('hidden'); lockScroll(false); }
+    $$('[data-info]').forEach(a => a.addEventListener('click', e => {
+      e.preventDefault();
+      const [t, h] = INFO[a.dataset.info];
+      openInfo(t, h);
+    }));
+    infoModal.addEventListener('click', e => { if (e.target.closest('[data-close-info]')) closeInfo(); });
+
+    // ---------- ТАБЛИЦА РАЗМЕРОВ ----------
+    // Мерки в сантиметрах; диапазон [от, до] включительно.
+    const SIZE_CHART = {
+      w: [
+        { int: 'S',  ru: '44', eu: '36', us: '4',  chest: [86, 89],  waist: [68, 71], hips: [94, 97] },
+        { int: 'M',  ru: '46', eu: '38', us: '6',  chest: [90, 93],  waist: [72, 75], hips: [98, 101] },
+        { int: 'L',  ru: '48', eu: '40', us: '8',  chest: [94, 97],  waist: [76, 79], hips: [102, 105] },
+        { int: 'XL', ru: '50', eu: '42', us: '10', chest: [98, 101], waist: [80, 83], hips: [106, 109] }
+      ],
+      m: [
+        { int: 'S',  ru: '46', eu: '46', us: '36', chest: [90, 94],   waist: [76, 80], hips: [92, 96] },
+        { int: 'M',  ru: '48', eu: '48', us: '38', chest: [94, 98],   waist: [80, 84], hips: [96, 100] },
+        { int: 'L',  ru: '50', eu: '50', us: '40', chest: [98, 102],  waist: [84, 88], hips: [100, 104] },
+        { int: 'XL', ru: '52', eu: '52', us: '42', chest: [102, 106], waist: [88, 92], hips: [104, 108] }
+      ],
+      shoes: [
+        { size: '39', ru: '38', usM: '6.5', usW: '8.5',  foot: 25.0 },
+        { size: '40', ru: '39', usM: '7',   usW: '9',    foot: 25.5 },
+        { size: '41', ru: '40', usM: '8',   usW: '10',   foot: 26.5 },
+        { size: '42', ru: '41', usM: '8.5', usW: '10.5', foot: 27.0 },
+        { size: '43', ru: '42', usM: '9.5', usW: '11.5', foot: 27.5 },
+        { size: '44', ru: '43', usM: '10',  usW: '12',   foot: 28.5 }
+      ],
+      hats: [
+        { size: '56', int: 'S',  head: [55.5, 56.5] },
+        { size: '57', int: 'M',  head: [56.5, 57.5] },
+        { size: '58', int: 'L',  head: [57.5, 58.5] },
+        { size: '59', int: 'XL', head: [58.5, 59.5] }
+      ],
+      belts: [
+        { size: '85',  waist: [80, 85] },
+        { size: '90',  waist: [86, 90] },
+        { size: '95',  waist: [91, 95] },
+        { size: '100', waist: [96, 100] }
+      ],
+      rings: [
+        { size: '16', d: 16, c: 50.3 },
+        { size: '17', d: 17, c: 53.4 },
+        { size: '18', d: 18, c: 56.5 },
+        { size: '19', d: 19, c: 59.7 }
+      ]
+    };
+    const SG_TABS = [
+      { id: 'w', label: 'Женщинам' }, { id: 'm', label: 'Мужчинам' }, { id: 'shoes', label: 'Обувь' },
+      { id: 'hats', label: 'Головные уборы' }, { id: 'belts', label: 'Ремни' }, { id: 'rings', label: 'Кольца' }
+    ];
+    const sg = { tab: 'w', product: null, values: {}, result: null };
+    const sgEl = $('#sizeGuide');
+    const cm = n => String(n).replace('.', ',');
+    const range = ([a, b]) => `${cm(a)}–${cm(b)}`;
+
+    // Какую вкладку открыть для товара
+    function sgTabFor(p) {
+      const byFilter = state.gender === 'm' ? 'm' : 'w';
+      if (!p) return byFilter;
+      if (p.cat === 'shoes') return 'shoes';
+      if (p.cat === 'hats') return 'hats';
+      if (/ремень/i.test(p.name)) return 'belts';
+      if (/кольц/i.test(p.name)) return 'rings';
+      return p.gender === 'm' ? 'm' : p.gender === 'w' ? 'w' : byFilter;
+    }
+
+    // Схема фигуры с отметками мерок: 1 — грудь, 2 — талия, 3 — бёдра
+    const SG_FIGURE = `
+      <svg viewBox="0 0 124 250" class="w-24 sm:w-32 shrink-0" aria-hidden="true">
+        <g stroke-linecap="round" fill="none">
+          <path d="M34 52 Q25 60 23 90 L20 128" stroke="#111" stroke-width="11"/>
+          <path d="M34 52 Q25 60 23 90 L20 128" stroke="#F4EFE6" stroke-width="8"/>
+          <path d="M86 52 Q95 60 97 90 L100 128" stroke="#111" stroke-width="11"/>
+          <path d="M86 52 Q95 60 97 90 L100 128" stroke="#F4EFE6" stroke-width="8"/>
+        </g>
+        <circle cx="60" cy="24" r="14" fill="#F4EFE6" stroke="#111" stroke-width="1.4"/>
+        <path d="M34 50 Q60 40 86 50 L84 80 Q80 96 76 104 Q84 116 82 132 L78 240 L63 240 L60 152 L57 240 L42 240 L38 132 Q36 116 44 104 Q40 96 36 80 Z"
+              fill="#F4EFE6" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/>
+        <g fill="none" stroke="#C8102E" stroke-width="1.6" stroke-dasharray="4 3">
+          <ellipse cx="60" cy="68" rx="26" ry="4"/>
+          <ellipse cx="60" cy="104" rx="17" ry="3.5"/>
+          <ellipse cx="60" cy="130" rx="23" ry="4"/>
+        </g>
+        <g font-family="Inter, sans-serif" font-size="9" text-anchor="middle">
+          <circle cx="114" cy="68" r="7" fill="#111"/><text x="114" y="71" fill="#FAF8F4">1</text>
+          <circle cx="114" cy="104" r="7" fill="#111"/><text x="114" y="107" fill="#FAF8F4">2</text>
+          <circle cx="114" cy="130" r="7" fill="#111"/><text x="114" y="133" fill="#FAF8F4">3</text>
+        </g>
+        <g stroke="#111" stroke-width=".8" stroke-dasharray="2 2">
+          <path d="M87 68H107M78 104H107M84 130H107"/>
+        </g>
+      </svg>`;
+
+    function sgTable(head, rows, highlight, minWidth) {
+      return `
+        <div class="overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
+          <table class="w-full text-sm text-left" style="min-width:${minWidth}px">
+            <thead><tr class="text-[11px] uppercase tracking-[0.12em] text-stone">
+              ${head.map(h => `<th scope="col" class="font-normal py-2 pr-3">${h}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${rows.map((r, i) => `<tr class="border-t border-line ${i === highlight ? 'bg-milk' : ''}">
+                ${r.map((c, j) => j === 0
+                  ? `<th scope="row" class="py-3 pr-3 font-medium ${i === highlight ? 'text-sale' : ''}">${c}</th>`
+                  : `<td class="py-3 pr-3">${c}</td>`).join('')}
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function sgHowTo(title, steps, figure = '', tips = '') {
+      return `
+        <div class="mt-8 pt-6 border-t border-line">
+          <p class="font-serif text-2xl mb-4">${title}</p>
+          <div class="flex gap-5 items-start">
+            ${figure}
+            <ol class="space-y-3 text-sm text-graphite leading-relaxed min-w-0">
+              ${steps.map((s, i) => `<li class="flex gap-3"><span class="shrink-0 w-6 h-6 rounded-full bg-ink text-milk text-[11px] flex items-center justify-center">${i + 1}</span><span>${s}</span></li>`).join('')}
+            </ol>
+          </div>
+          ${tips ? `<div class="mt-5 rounded-2xl bg-milk p-4 text-sm text-graphite leading-relaxed">${tips}</div>` : ''}
+        </div>`;
+    }
+
+    function sgCalc(fields, hint) {
+      const r = sg.result;
+      return `
+        <form id="sgCalc" class="rounded-2xl bg-white border border-line p-4 sm:p-5 mb-6" novalidate>
+          <p class="font-medium">Подберём размер по вашим меркам</p>
+          <p class="text-xs text-stone mt-1 mb-4">${hint}</p>
+          <div class="grid gap-3" style="grid-template-columns:repeat(${fields.length},minmax(0,1fr))">
+            ${fields.map(f => `
+              <label class="block min-w-0">
+                <span class="block text-xs text-stone mb-1">${f.label}</span>
+                <input name="${f.name}" type="number" inputmode="decimal" min="${f.min}" max="${f.max}" step="0.1"
+                       placeholder="${f.ph}" value="${sg.values[f.name] ?? ''}"
+                       class="w-full h-11 px-3 rounded-xl border border-line bg-cream focus:border-ink outline-none text-sm" />
+              </label>`).join('')}
+          </div>
+          <button class="mt-4 h-11 px-6 rounded-full bg-ink text-milk text-xs uppercase tracking-[0.15em] hover:bg-graphite transition">Подобрать размер</button>
+          ${r ? `<div class="mt-4 pt-4 border-t border-line" aria-live="polite">${r.html}</div>` : ''}
+        </form>`;
+    }
+
+    function sgResult(size, details, note) {
+      const p = sg.product;
+      const canPick = p && !p.oneSize && (p.sizes || SIZES).includes(size);
+      return `
+        <p class="text-sm text-graphite">Ваш размер</p>
+        <p class="flex flex-wrap items-baseline gap-x-3 mt-1"><span class="font-serif text-4xl text-sale">${size}</span><span class="text-sm text-stone">${details}</span></p>
+        ${note ? `<p class="text-xs text-graphite mt-2 leading-relaxed">${note}</p>` : ''}
+        ${canPick ? `<button type="button" data-sg-pick="${size}" class="mt-3 h-10 px-5 rounded-full border border-ink text-xs uppercase tracking-[0.12em] hover:bg-ink hover:text-milk transition">Выбрать ${size} для «${escapeHtml(p.name)}»</button>` : ''}`;
+    }
+    const sgMessage = text => `<p class="text-sm text-graphite">${text}</p>`;
+    const sgHi = () => (sg.result ? sg.result.index : -1);
+
+    // ----- Содержимое вкладок -----
+    const SG_VIEWS = {
+      clothing() {
+        const rows = SIZE_CHART[sg.tab];
+        const men = sg.tab === 'm';
+        return sgCalc([
+            { name: 'chest', label: '1. Грудь', min: 60, max: 160, ph: men ? '96' : '90' },
+            { name: 'waist', label: '2. Талия', min: 50, max: 150, ph: men ? '82' : '72' },
+            { name: 'hips',  label: '3. Бёдра', min: 60, max: 170, ph: men ? '98' : '98' }
+          ], 'Достаточно одной мерки, но с тремя подбор точнее. Всё в сантиметрах.')
+          + sgTable(['Размер', 'RU', 'EU', 'US', 'Грудь, см', 'Талия, см', 'Бёдра, см'],
+              rows.map(r => [r.int, r.ru, r.eu, r.us, range(r.chest), range(r.waist), range(r.hips)]), sgHi(), 540)
+          + sgHowTo('Как снять мерки', [
+              '<b>Грудь</b> — по самым выступающим точкам, сантиметр проходит под мышками и горизонтально по спине.',
+              '<b>Талия</b> — по самому узкому месту, обычно на 2–3 см выше пупка. Живот не втягивайте.',
+              '<b>Бёдра</b> — по самым выступающим точкам ягодиц, ноги вместе.'
+            ], SG_FIGURE,
+            '<b>Советы.</b> Мерки снимайте в белье, сантиметр должен прилегать, но не стягивать. Если вы между размерами: oversize-вещи (худи, свитшоты, футболки Essential) берите в своём размере или на размер меньше, приталенные (рубашки, брюки, пальто) — на размер больше.');
+      },
+      shoes() {
+        const rows = SIZE_CHART.shoes;
+        return sgCalc([{ name: 'foot', label: 'Длина стопы, см', min: 20, max: 32, ph: '26,0' }],
+            'Измерьте стопу от пятки до самого длинного пальца.')
+          + sgTable(['EU', 'RU', 'US муж.', 'US жен.', 'Длина стопы, см'],
+              rows.map(r => [r.size, r.ru, r.usM, r.usW, 'до ' + cm(r.foot.toFixed(1))]), sgHi(), 460)
+          + sgHowTo('Как измерить стопу', [
+              'Поставьте ногу на лист бумаги у стены, пятка касается стены.',
+              'Отметьте карандашом кончик самого длинного пальца.',
+              'Измерьте расстояние от стены до отметки. Повторите для второй ноги и ориентируйтесь на большую.'
+            ], '', '<b>Советы.</b> Мерку лучше снимать вечером — к концу дня стопа немного больше. Запас на носок уже учтён в таблице. Для широкой стопы или тёплого носка берите следующий размер.');
+      },
+      hats() {
+        return sgCalc([{ name: 'head', label: 'Обхват головы, см', min: 48, max: 66, ph: '57' }],
+            'Мерка — по лбу и над ушами.')
+          + sgTable(['Размер', 'INT', 'Обхват головы, см'],
+              SIZE_CHART.hats.map(r => [r.size, r.int, range(r.head)]), sgHi(), 320)
+          + sgHowTo('Как измерить голову', [
+              'Оберните сантиметр вокруг головы на 1–2 см выше бровей.',
+              'Сзади лента проходит по самой выступающей точке затылка, по бокам — над ушами.',
+              'Не затягивайте: под лентой должен проходить палец.'
+            ], '', '<b>Кепки, панамы и соломенные шляпы</b> идут в едином размере: у них регулируемый ремешок, они подходят на обхват 55–60 см. Таблица нужна для фетровой федоры.');
+      },
+      belts() {
+        return sgCalc([{ name: 'waist', label: 'Обхват, см', min: 50, max: 140, ph: '88' }],
+            'Мерка — там, где вы носите ремень, обычно чуть ниже талии.')
+          + sgTable(['Размер ремня', 'Обхват в месте ношения, см'],
+              SIZE_CHART.belts.map(r => [r.size, range(r.waist)]), sgHi(), 300)
+          + sgHowTo('Как выбрать ремень', [
+              'Наденьте брюки или джинсы, с которыми будете носить ремень.',
+              'Измерьте обхват по шлёвкам.',
+              'Выберите размер, в диапазон которого попадает мерка. Ремень застёгивается на среднюю дырочку — останется запас ±5 см.'
+            ]);
+      },
+      rings() {
+        return sgCalc([
+            { name: 'circ', label: 'Окружность пальца, мм', min: 40, max: 75, ph: '54' },
+            { name: 'diam', label: 'или диаметр кольца, мм', min: 13, max: 24, ph: '17' }
+          ], 'Достаточно одного значения.')
+          + sgTable(['Размер', 'Внутренний диаметр, мм', 'Окружность пальца, мм'],
+              SIZE_CHART.rings.map(r => [r.size, cm(r.d.toFixed(1)), cm(r.c.toFixed(1))]), sgHi(), 360)
+          + sgHowTo('Как узнать размер кольца', [
+              'Оберните нитку или полоску бумаги вокруг основания пальца.',
+              'Отметьте место, где концы сходятся, и измерьте длину в миллиметрах — это окружность.',
+              'Или измерьте внутренний диаметр кольца, которое вам подходит.'
+            ], '', '<b>Совет.</b> Меряйте в конце дня, когда пальцы тёплые. Кольцо должно проходить через сустав с небольшим усилием.');
+      }
+    };
+
+    function sgRender() {
+      $('#sgTabs').innerHTML = SG_TABS.map(t => `
+        <button type="button" role="tab" data-sg-tab="${t.id}" aria-selected="${t.id === sg.tab}"
+                class="shrink-0 h-9 px-4 rounded-full text-xs whitespace-nowrap border transition ${t.id === sg.tab ? 'bg-ink text-milk border-ink' : 'bg-white border-line hover:border-ink'}">${t.label}</button>`).join('');
+      const view = (sg.tab === 'w' || sg.tab === 'm') ? SG_VIEWS.clothing() : SG_VIEWS[sg.tab]();
+      $('#sgBody').innerHTML =
+        (sg.product ? `<p class="text-xs text-stone mb-4">Подбираем для: <span class="text-ink">${escapeHtml(sg.product.name)}</span></p>` : '') + view;
+    }
+
+    // ----- Подбор размера по меркам -----
+    function sgCompute(form) {
+      const num = name => {
+        if (!form[name]) return null;
+        const v = parseFloat(String(form[name].value).replace(',', '.'));
+        return Number.isFinite(v) && v > 0 && v < 400 ? v : null;
+      };
+      const firstFit = (rows, value, upper) => {
+        const i = rows.findIndex(r => value <= upper(r));
+        return i === -1 ? rows.length : i;
+      };
+      sg.values = {};
+      let res;
+
+      if (sg.tab === 'w' || sg.tab === 'm') {
+        const rows = SIZE_CHART[sg.tab];
+        const idx = ['chest', 'waist', 'hips'].map(k => {
+          const v = num(k);
+          if (v === null) return null;
+          sg.values[k] = v;
+          return firstFit(rows, v, r => r[k][1]);
+        }).filter(i => i !== null);
+        if (!idx.length) res = { index: -1, html: sgMessage('Введите хотя бы одну мерку.') };
+        else {
+          const i = Math.max(...idx), lo = Math.min(...idx);
+          if (i >= rows.length) {
+            res = { index: -1, html: sgMessage('Мерки больше размера XL. Напишите нам — подскажем модели со свободной посадкой.') };
+          } else {
+            const r = rows[i];
+            const note = lo !== i
+              ? `Мерки попадают в разные размеры (${rows[lo].int} и ${r.int}) — мы выбрали больший, чтобы вещь не стесняла. Для oversize-моделей подойдёт и ${rows[lo].int}.`
+              : 'Любите свободную посадку — возьмите на размер больше.';
+            res = { index: i, html: sgResult(r.int, `RU ${r.ru} · EU ${r.eu} · US ${r.us}`, note) };
+          }
+        }
+      } else if (sg.tab === 'shoes') {
+        const v = num('foot');
+        if (v === null) res = { index: -1, html: sgMessage('Введите длину стопы в сантиметрах.') };
+        else {
+          sg.values.foot = v;
+          const rows = SIZE_CHART.shoes, i = firstFit(rows, v, r => r.foot);
+          res = i >= rows.length
+            ? { index: -1, html: sgMessage('Стопа длиннее 28,5 см — таких размеров пока нет.') }
+            : { index: i, html: sgResult(rows[i].size, `EU · RU ${rows[i].ru} · US ${rows[i].usM} муж. / ${rows[i].usW} жен.`, 'Запас на носок уже учтён.') };
+        }
+      } else if (sg.tab === 'hats') {
+        const v = num('head');
+        if (v === null) res = { index: -1, html: sgMessage('Введите обхват головы в сантиметрах.') };
+        else {
+          sg.values.head = v;
+          const rows = SIZE_CHART.hats, i = firstFit(rows, v, r => r.head[1]);
+          res = i >= rows.length
+            ? { index: -1, html: sgMessage('Обхват больше 59,5 см — подойдут кепки и панамы с регулировкой (до 60 см).') }
+            : { index: i, html: sgResult(rows[i].size, `INT ${rows[i].int}`, v >= 55 && v <= 60 ? 'Кепки и панамы единого размера вам тоже подойдут.' : '') };
+        }
+      } else if (sg.tab === 'belts') {
+        const v = num('waist');
+        if (v === null) res = { index: -1, html: sgMessage('Введите обхват в сантиметрах.') };
+        else {
+          sg.values.waist = v;
+          const rows = SIZE_CHART.belts, i = firstFit(rows, v, r => r.waist[1]);
+          res = i >= rows.length
+            ? { index: -1, html: sgMessage('Обхват больше 100 см — напишите нам, сделаем ремень на заказ.') }
+            : { index: i, html: sgResult(rows[i].size, `обхват ${range(rows[i].waist)} см`, '') };
+        }
+      } else if (sg.tab === 'rings') {
+        const c = num('circ'), d = num('diam');
+        const diameter = d !== null ? d : c !== null ? c / Math.PI : null;
+        if (c !== null) sg.values.circ = c;
+        if (d !== null) sg.values.diam = d;
+        if (diameter === null) res = { index: -1, html: sgMessage('Введите окружность пальца или диаметр кольца в миллиметрах.') };
+        else {
+          const rows = SIZE_CHART.rings, i = firstFit(rows, diameter, r => r.d + 0.25);
+          res = i >= rows.length
+            ? { index: -1, html: sgMessage('Нужен размер больше 19 — напишите нам, изготовим на заказ.') }
+            : { index: i, html: sgResult(rows[i].size, `диаметр ${cm(rows[i].d.toFixed(1))} мм`, '') };
+        }
+      }
+      sg.result = res;
+      sgRender();
+      const out = $('#sgCalc');
+      if (out) out.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function openSizeGuide(product) {
+      sg.product = product || null;
+      sg.tab = sgTabFor(sg.product);
+      sg.values = {};
+      sg.result = null;
+      sgRender();
+      sgEl.classList.remove('hidden');
+      lockScroll(true);
+      $('#sgClose').focus({ preventScroll: true });
+    }
+    function closeSizeGuide() {
+      sgEl.classList.add('hidden');
+      if (modal.classList.contains('hidden')) lockScroll(false);   // карточка товара под таблицей ещё открыта
+    }
+
+    $('#sgTabs').addEventListener('click', e => {
+      const b = e.target.closest('[data-sg-tab]');
+      if (!b) return;
+      sg.tab = b.dataset.sgTab;
+      sg.values = {};
+      sg.result = null;
+      sgRender();
+    });
+    $('#sgBody').addEventListener('submit', e => {
+      if (e.target.id !== 'sgCalc') return;
+      e.preventDefault();
+      sgCompute(e.target);
+    });
+    $('#sgBody').addEventListener('click', e => {
+      const b = e.target.closest('[data-sg-pick]');
+      if (!b || !sg.product) return;
+      state.modal.size = b.dataset.sgPick;
+      state.cardSize[sg.product.id] = b.dataset.sgPick;
+      renderModalSizes();
+      closeSizeGuide();
+      toast(`Размер ${b.dataset.sgPick} выбран`);
+    });
+    sgEl.addEventListener('click', e => { if (e.target.closest('[data-close-sg]')) closeSizeGuide(); });
+    document.addEventListener('click', e => {
+      const link = e.target.closest('[data-size-guide]');
+      if (!link) return;
+      e.preventDefault();
+      openSizeGuide(link.dataset.sizeGuide === 'product' ? byId(state.modal.id) : null);
+    });
+
+    // ---------- РАССЫЛКА ----------
+    $('#newsletterForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const email = $('#newsletterEmail');
+      if (!email.checkValidity()) { email.reportValidity(); return; }
+      e.target.classList.add('hidden');
+      $('#newsletterMsg').classList.remove('hidden');
+    });
+
+    // ---------- ESC закрывает всё ----------
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      // Таблица размеров открыта поверх карточки товара — Esc закрывает только её
+      if (!sgEl.classList.contains('hidden')) { closeSizeGuide(); return; }
+      if (!modal.classList.contains('hidden')) closeModal();
+      if (!drawer.classList.contains('hidden')) closeCart();
+      if (!infoModal.classList.contains('hidden')) closeInfo();
+      if (!menu.classList.contains('hidden')) { menu.classList.add('hidden'); lockScroll(false); }
+      if (!searchBar.classList.contains('hidden')) searchBar.classList.add('hidden');
+    });
+
+    // ---------- ИНИЦИАЛИЗАЦИЯ ----------
+    $('#year').textContent = new Date().getFullYear();
+    observeReveals(document);
+    initScrollEffects();
+    renderProducts();
+    renderLookbook();
+    renderCart();
+  })();
+  </script>
+</body>
+</html>
