@@ -165,7 +165,7 @@
     @keyframes sd-marquee-rev { from { transform: translateX(-45%); } to { transform: translateX(0); } }
     @keyframes sd-card    { from { opacity: .35; transform: scale(.9); } to { opacity: 1; transform: none; } }
 
-    @supports (animation-timeline: view()) {
+    @supports (animation-timeline: view()) and (selector(html.sd)) {
       @media (prefers-reduced-motion: no-preference) {
 
         /* Появление блоков: прогресс = насколько элемент въехал в экран */
@@ -1377,8 +1377,8 @@
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const REVEAL_SELECTOR = '.reveal, .reveal-mask, .reveal-lines';
     // Нативные scroll-driven animations? Тогда всё делает CSS, а JS — только фолбэк.
-    const scrollDriven = !reduceMotion && !!(window.CSS && CSS.supports && CSS.supports('animation-timeline: view()'));
-    if (scrollDriven) document.documentElement.classList.add('sd');
+    // Используем IntersectionObserver на всех устройствах: scroll-timeline в iOS/PWA может оставлять текст полупрозрачным.
+    // Не включаем экспериментальные scroll-driven стили; reveal-анимации запускаются наблюдателем.
 
     // Плавный счётчик чисел (100%, 12 мастеров)
     function animateCount(el) {
@@ -1410,7 +1410,7 @@
       : null;
 
     function observeReveals(root) {
-      if (scrollDriven) return; // анимации привязаны к скроллу в CSS
+      // IntersectionObserver — стабильный вариант для Safari, iOS PWA и desktop.
       $$(REVEAL_SELECTOR, root).forEach(el => {
         if (el.classList.contains('is-visible')) return;
         if (revealObserver) revealObserver.observe(el);
@@ -1420,7 +1420,7 @@
 
     // Параллакс hero, тень шапки, прогресс прокрутки
     function initScrollEffects() {
-      if (scrollDriven) {
+      if (false) {
         // Счётчики выводит CSS через counter(), поэтому текст-заглушку убираем
         $$('[data-count]').forEach(el => (el.textContent = ''));
         return;
