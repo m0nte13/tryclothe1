@@ -165,7 +165,7 @@
     @keyframes sd-marquee-rev { from { transform: translateX(-45%); } to { transform: translateX(0); } }
     @keyframes sd-card    { from { opacity: .35; transform: scale(.9); } to { opacity: 1; transform: none; } }
 
-    @supports (animation-timeline: view()) and (selector(html.sd)) {
+    @supports (animation-timeline: monte-unavailable) {
       @media (prefers-reduced-motion: no-preference) {
 
         /* Появление блоков: прогресс = насколько элемент въехал в экран */
@@ -1420,11 +1420,6 @@
 
     // Параллакс hero, тень шапки, прогресс прокрутки
     function initScrollEffects() {
-      if (false) {
-        // Счётчики выводит CSS через counter(), поэтому текст-заглушку убираем
-        $$('[data-count]').forEach(el => (el.textContent = ''));
-        return;
-      }
       const header = $('#header');
       const progress = $('#scrollProgress');
       const heroImg = $('#heroImg');
