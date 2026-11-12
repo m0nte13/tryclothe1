@@ -44,6 +44,17 @@
 
   <style>
     html { scroll-behavior: smooth; }
+    /* Mobile layout guard: prevent accidental page-wide horizontal scrolling on iOS Safari */
+    html, body { width: 100%; max-width: 100%; overflow-x: clip; }
+    body { min-width: 0; }
+    #top, main, #catalog, #productGrid { min-width: 0; max-width: 100%; }
+    #productGrid { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #productGrid > article { min-width: 0; max-width: 100%; }
+    #productGrid h3 { min-width: 0; overflow-wrap: anywhere; }
+    @media (max-width: 380px) {
+      #productGrid { gap-left: 10px; column-gap: 10px; }
+      #catalog { padding-left: 12px; padding-right: 12px; }
+    }
     /* Отступы под вырезы iPhone / Android */
     body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
     #header { padding-top: env(safe-area-inset-top); }
@@ -319,9 +330,14 @@
       .pl-tag.t3, .pl-tag.t4 { display: none; }
       .pl-tag.t1 { top: 20%; }
       .pl-tag.t2 { top: 27%; }
-      .pl-top { font-size: 8px; letter-spacing: .12em; gap: 8px; }
-      .pl-top span { white-space: nowrap; }
-      .pl-top span:last-child { display: inline !important; }
+      .pl-top {
+        left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-right));
+        display: flex !important; align-items: center; justify-content: space-between;
+        font-size: 8px; letter-spacing: .08em; gap: 6px; white-space: nowrap;
+      }
+      .pl-top span { display: inline-flex !important; align-items: center; white-space: nowrap; min-width: 0; }
+      .pl-top #plClock { display: inline-block !important; visibility: visible !important; opacity: 1 !important; flex-shrink: 0; text-align: right; font-size: 8px; letter-spacing: .06em; }
     }
 
     @media (prefers-reduced-motion: reduce) {
